@@ -1,0 +1,1 @@
+<185>date=2026-09-30 time=10:05:00 devname="vpn01" devid="FGVM01TM00000001" logid="0101039426" type="event" subtype="vpn" level="alert" vd="root" logdesc="SSL VPN login fail" action="ssl-login-fail" tunneltype="ssl-web" remip=198.51.100.9 user="admin" reason="sslvpn_login_permission_denied" msg="SSL VPN user login failed"

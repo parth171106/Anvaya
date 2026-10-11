@@ -1,0 +1,317 @@
+{
+  "event_id": "e-3db59309ddaa",
+  "raw": {
+    "raw_id": "r-3db59309ddaa",
+    "seq": 100,
+    "size": 323,
+    "encoding": "utf-8",
+    "flags": [],
+    "transport": "udp",
+    "peer_ip": "127.0.0.1",
+    "received_at": 1790742900000,
+    "raw_sha256": "632ad16d39e829111ce7101d17d716afebe6773d675a2498f66c64abf93b7f84",
+    "batch_id": 7,
+    "text": "<185>date=2026-09-30 time=10:05:00 devname=\"vpn01\" devid=\"FGVM01TM00000001\" logid=\"0101039426\" type=\"event\" subtype=\"vpn\" level=\"alert\" vd=\"root\" logdesc=\"SSL VPN login fail\" action=\"ssl-login-fail\" tunneltype=\"ssl-web\" remip=198.51.100.9 user=\"admin\" reason=\"sslvpn_login_permission_denied\" msg=\"SSL VPN user login failed\""
+  },
+  "ocsf": {
+    "class_uid": 3002,
+    "class_name": "Authentication",
+    "category_uid": 3,
+    "category_name": "Identity & Access Management",
+    "activity_id": 1,
+    "activity_name": "Logon",
+    "type_uid": 300201,
+    "type_name": "Authentication: Logon",
+    "severity_id": 3,
+    "severity": "Medium",
+    "status_id": 2,
+    "status": "Failure",
+    "status_detail": "sslvpn_login_permission_denied",
+    "message": "SSL VPN user login failed",
+    "time": 1790742900000,
+    "time_dt": "2026-09-30T04:35:00Z",
+    "device": {
+      "hostname": "vpn01",
+      "type_id": 9,
+      "type": "Firewall"
+    },
+    "user": {
+      "name": "admin"
+    },
+    "src_endpoint": {
+      "ip": "198.51.100.9"
+    },
+    "metadata": {
+      "version": "1.9.0",
+      "uid": "e-3db59309ddaa",
+      "log_name": "fortigate-kv",
+      "original_time": "2026-09-30 10:05:00",
+      "product": {
+        "vendor_name": "Fortinet",
+        "name": "FortiGate"
+      }
+    },
+    "observables": [
+      {
+        "name": "src_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "198.51.100.9"
+      },
+      {
+        "name": "user.name",
+        "type_id": 4,
+        "type": "User Name",
+        "value": "admin"
+      }
+    ],
+    "raw_data": "<185>date=2026-09-30 time=10:05:00 devname=\"vpn01\" devid=\"FGVM01TM00000001\" logid=\"0101039426\" type=\"event\" subtype=\"vpn\" level=\"alert\" vd=\"root\" logdesc=\"SSL VPN login fail\" action=\"ssl-login-fail\" tunneltype=\"ssl-web\" remip=198.51.100.9 user=\"admin\" reason=\"sslvpn_login_permission_denied\" msg=\"SSL VPN user login failed\"",
+    "unmapped": {
+      "syslog_pri": "185",
+      "devid": "FGVM01TM00000001",
+      "logid": "0101039426",
+      "type": "event",
+      "subtype": "vpn",
+      "level": "alert",
+      "vd": "root",
+      "logdesc": "SSL VPN login fail",
+      "tunneltype": "ssl-web"
+    },
+    "dst_endpoint": {
+      "hostname": "vpn01"
+    }
+  },
+  "anvaya": {
+    "format": "fortigate-kv",
+    "vendor": "Fortinet",
+    "product": "FortiGate",
+    "device": "vpn01",
+    "parser": "fortigate-kv@1.0.0",
+    "rule_id": "fgt-ssl-login-fail",
+    "parse_confidence": 89,
+    "confidence_breakdown": {
+      "required": 1.0,
+      "typed": 1.0,
+      "mapped": 0.4706
+    },
+    "source_timezone": "Asia/Kolkata",
+    "device_time_raw": "2026-09-30 10:05:00",
+    "clock_skew_s": 0,
+    "roundtrip": {
+      "ok": true,
+      "value_check": true,
+      "coverage": 1.0,
+      "dropped": 0
+    },
+    "lineage": [
+      {
+        "path": "time",
+        "spans": [
+          [
+            10,
+            20
+          ],
+          [
+            26,
+            34
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "metadata.original_time",
+        "spans": [
+          [
+            10,
+            20
+          ],
+          [
+            26,
+            34
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "device.hostname",
+        "spans": [
+          [
+            44,
+            49
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "dst_endpoint.hostname",
+        "spans": [
+          [
+            44,
+            49
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "status",
+        "spans": [
+          [
+            183,
+            197
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "activity_name",
+        "spans": [
+          [
+            183,
+            197
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "severity",
+        "spans": [
+          [
+            183,
+            197
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "src_endpoint.ip",
+        "spans": [
+          [
+            226,
+            238
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "user.name",
+        "spans": [
+          [
+            245,
+            250
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "status_detail",
+        "spans": [
+          [
+            260,
+            290
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "message",
+        "spans": [
+          [
+            297,
+            322
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.syslog_pri",
+        "spans": [
+          [
+            1,
+            4
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.devid",
+        "spans": [
+          [
+            58,
+            74
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.logid",
+        "spans": [
+          [
+            83,
+            93
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.type",
+        "spans": [
+          [
+            101,
+            106
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.subtype",
+        "spans": [
+          [
+            117,
+            120
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.level",
+        "spans": [
+          [
+            129,
+            134
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.vd",
+        "spans": [
+          [
+            140,
+            144
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.logdesc",
+        "spans": [
+          [
+            155,
+            173
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.tunneltype",
+        "spans": [
+          [
+            211,
+            218
+          ]
+        ],
+        "derived": false
+      }
+    ]
+  }
+}

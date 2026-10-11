@@ -1,0 +1,95 @@
+name: cisco-asa
+version: 1.0.0
+origin: builtin                    # builtin | ai_draft | user
+priority: 30
+vendor: Cisco
+product: ASA
+format: cisco-asa-syslog
+device_type: Firewall              # OCSF device.type_id (required by the schema)
+source_timezone: Asia/Kolkata      # used when the device timestamp has no offset
+detect:
+  header: asa3164y
+  body_regex: '^%ASA-\d-\d{6}: '
+header_fields:                     # header spans → fields
+  pri: { to: unmapped.syslog_pri }
+  ts: { to: time, transform: { timestamp: '%b %d %Y %H:%M:%S' }, also: metadata.original_time }
+  host: { to: device.hostname }
+prefix:
+  regex: '^%ASA-(?P<asa_severity>\d)-(?P<asa_message_id>\d{6}): '
+  fields:
+    asa_severity: { to: unmapped.asa_severity }
+    asa_message_id: { to: unmapped.asa_message_id }
+rules:
+  - id: asa-302013-inbound
+    when: { asa_message_id: '302013', body_contains: 'Built inbound ' }
+    regex: 'Built (?P<direction>inbound) (?P<proto>TCP|UDP) connection (?P<conn_id>\d+) for (?P<a_zone>[^:\s]+):(?P<a_ip>[\d.]+)/(?P<a_port>\d+) \((?P<a_mapped>[\d.]+/\d+)\) to (?P<b_zone>[^:\s]+):(?P<b_ip>[\d.]+)/(?P<b_port>\d+) \((?P<b_mapped>[\d.]+/\d+)\)$'
+    ocsf:
+      class_uid: 4001
+      activity: Open
+      action: Allowed
+      disposition: Allowed
+      severity: Informational
+    map:
+      direction: { to: connection_info.direction, transform: { enum: { inbound: Inbound } } }
+      proto: { to: connection_info.protocol_name, transform: lower }
+      conn_id: { to: connection_info.uid }
+      a_ip: { to: src_endpoint.ip, type: ip }
+      a_port: { to: src_endpoint.port, type: int }
+      b_ip: { to: dst_endpoint.ip, type: ip }
+      b_port: { to: dst_endpoint.port, type: int }
+      a_zone: { to: unmapped.src_zone }
+      b_zone: { to: unmapped.dst_zone }
+      a_mapped: { to: unmapped.src_mapped }
+      b_mapped: { to: unmapped.dst_mapped }
+  - id: asa-302013-outbound
+    when: { asa_message_id: '302013', body_contains: 'Built outbound ' }
+    regex: 'Built (?P<direction>outbound) (?P<proto>TCP|UDP) connection (?P<conn_id>\d+) for (?P<a_zone>[^:\s]+):(?P<a_ip>[\d.]+)/(?P<a_port>\d+) \((?P<a_mapped>[\d.]+/\d+)\) to (?P<b_zone>[^:\s]+):(?P<b_ip>[\d.]+)/(?P<b_port>\d+) \((?P<b_mapped>[\d.]+/\d+)\)$'
+    ocsf: { class_uid: 4001, activity: Open, action: Allowed, disposition: Allowed, severity: Informational }
+    map:                           # outbound: the initiator is the inside host (b_*)
+      direction: { to: connection_info.direction, transform: { enum: { outbound: Outbound } } }
+      proto: { to: connection_info.protocol_name, transform: lower }
+      conn_id: { to: connection_info.uid }
+      b_ip: { to: src_endpoint.ip, type: ip }
+      b_port: { to: src_endpoint.port, type: int }
+      a_ip: { to: dst_endpoint.ip, type: ip }
+      a_port: { to: dst_endpoint.port, type: int }
+      a_zone: { to: unmapped.dst_zone }
+      b_zone: { to: unmapped.src_zone }
+      a_mapped: { to: unmapped.dst_mapped }
+      b_mapped: { to: unmapped.src_mapped }
+  - id: asa-302014-teardown
+    when: { asa_message_id: '302014' }
+    regex: 'Teardown (?P<proto>TCP|UDP) connection (?P<conn_id>\d+) for (?P<a_zone>[^:\s]+):(?P<a_ip>[\d.]+)/(?P<a_port>\d+) to (?P<b_zone>[^:\s]+):(?P<b_ip>[\d.]+)/(?P<b_port>\d+) duration (?P<duration>\d+:\d{2}:\d{2}) bytes (?P<bytes>\d+) (?P<reason>.+)$'
+    ocsf: { class_uid: 4001, activity: Close, action: Allowed, disposition: Allowed, severity: Informational }
+    map:
+      proto: { to: connection_info.protocol_name, transform: lower }
+      conn_id: { to: connection_info.uid }
+      b_ip: { to: src_endpoint.ip, type: ip }
+      b_port: { to: src_endpoint.port, type: int }
+      a_ip: { to: dst_endpoint.ip, type: ip }
+      a_port: { to: dst_endpoint.port, type: int }
+      bytes: { to: traffic.bytes, type: int }
+      duration: { to: unmapped.duration }
+      reason: { to: unmapped.teardown_reason }
+      a_zone: { to: unmapped.dst_zone }
+      b_zone: { to: unmapped.src_zone }
+  - id: asa-106023-deny
+    when: { asa_message_id: '106023' }
+    regex: 'Deny (?P<proto>\w+) src (?P<a_zone>[^:\s]+):(?P<a_ip>[\d.]+)/(?P<a_port>\d+) dst (?P<b_zone>[^:\s]+):(?P<b_ip>[\d.]+)/(?P<b_port>\d+) by access-group "(?P<acl>[^"]+)" \[(?P<hash>[^\]]+)\]$'
+    ocsf: { class_uid: 4001, activity: Refuse, action: Denied, disposition: Blocked, severity: Low }
+    map:
+      proto: { to: connection_info.protocol_name, transform: lower }
+      a_ip: { to: src_endpoint.ip, type: ip }
+      a_port: { to: src_endpoint.port, type: int }
+      b_ip: { to: dst_endpoint.ip, type: ip }
+      b_port: { to: dst_endpoint.port, type: int }
+      acl: { to: unmapped.access_group }
+      hash: { to: unmapped.acl_hash }
+      a_zone: { to: unmapped.src_zone }
+      b_zone: { to: unmapped.dst_zone }
+required: [time, src_endpoint.ip, dst_endpoint.ip]
+tests:
+  - input: '<166>Sep 30 2026 10:07:12 fw01 : %ASA-6-302013: Built inbound TCP connection 77801 for outside:198.51.100.9/40133 (198.51.100.9/40133) to inside:10.2.4.18/443 (10.2.4.18/443)'
+    expect: { class_uid: 4001, activity_id: 1, src_endpoint.ip: 198.51.100.9, src_endpoint.port: 40133, dst_endpoint.ip: 10.2.4.18, dst_endpoint.port: 443, action: Allowed }
+  - input: '<164>Sep 30 2026 10:02:00 fw01 : %ASA-4-106023: Deny tcp src outside:198.51.100.9/40101 dst inside:10.2.4.18/21 by access-group "OUTSIDE_IN" [0x0, 0x0]'
+    expect: { class_uid: 4001, action: Denied, dst_endpoint.port: 21 }

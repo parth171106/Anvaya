@@ -1,0 +1,45 @@
+name: suricata-eve
+version: 1.0.0
+origin: builtin
+priority: 10
+vendor: OISF
+product: Suricata
+format: suricata-eve-json
+device_type: IDS
+source_timezone: Asia/Kolkata
+detect:
+  header: bsd3164
+  header_app: suricata
+  body_json_has: [event_type]
+header_fields:
+  pri: { to: unmapped.syslog_pri }
+  ts: { to: unmapped.syslog_time }
+  host: { to: device.hostname }
+  app: { to: unmapped.app }
+  pid: { to: unmapped.pid }
+extractor: { type: json }
+rules:
+  - id: eve-alert
+    when: { json_equals: { event_type: alert } }
+    ocsf: { class_uid: 2004, activity: Create }
+    map:
+      timestamp: { to: time, transform: { timestamp: '%Y-%m-%dT%H:%M:%S.%f%z' }, also: metadata.original_time }
+      src_ip: { to: 'evidences[0].src_endpoint.ip', type: ip }
+      src_port: { to: 'evidences[0].src_endpoint.port', type: int }
+      dest_ip: { to: 'evidences[0].dst_endpoint.ip', type: ip }
+      dest_port: { to: 'evidences[0].dst_endpoint.port', type: int }
+      proto: { to: 'evidences[0].connection_info.protocol_name', transform: lower }
+      alert.signature_id: { to: finding_info.uid }
+      alert.signature: { to: finding_info.title }
+      alert.category: { to: 'finding_info.types[0]' }
+      alert.severity: { to: severity, transform: { enum: { '1': High, '2': Medium, '3': Low } } }
+      flow_id: { to: unmapped.flow_id }
+      in_iface: { to: unmapped.in_iface }
+      event_type: { to: unmapped.event_type }
+      alert.action: { to: unmapped.alert.action }
+      alert.gid: { to: unmapped.alert.gid }
+      alert.rev: { to: unmapped.alert.rev }
+required: [time, finding_info.uid, finding_info.title]
+tests:
+  - input: '<134>Sep 30 10:02:05 ids01 suricata[2211]: {"timestamp":"2026-09-30T10:02:05.000000+0530","flow_id":1500000000000900,"in_iface":"eth1","event_type":"alert","src_ip":"198.51.100.9","src_port":40100,"dest_ip":"10.2.4.18","dest_port":22,"proto":"TCP","alert":{"action":"allowed","gid":1,"signature_id":9000001,"rev":1,"signature":"ANVAYA-LAB SCAN Inbound TCP port sweep","category":"Attempted Information Leak","severity":2}}'
+    expect: { class_uid: 2004, severity: Medium, finding_info.uid: '9000001', 'evidences[0].dst_endpoint.port': 22 }

@@ -1,0 +1,352 @@
+{
+  "event_id": "e-64f70aaee53f",
+  "raw": {
+    "raw_id": "r-64f70aaee53f",
+    "seq": 40,
+    "size": 422,
+    "encoding": "utf-8",
+    "flags": [],
+    "transport": "udp",
+    "peer_ip": "127.0.0.1",
+    "received_at": 1790742725000,
+    "raw_sha256": "9411734615b92fb98885e675ad1412802146e7efce2f550290c4eff32b479b0d",
+    "batch_id": 3,
+    "text": "<134>Sep 30 10:02:05 ids01 suricata[2211]: {\"timestamp\":\"2026-09-30T10:02:05.000000+0530\",\"flow_id\":1500000000000900,\"in_iface\":\"eth1\",\"event_type\":\"alert\",\"src_ip\":\"198.51.100.9\",\"src_port\":40100,\"dest_ip\":\"10.2.4.18\",\"dest_port\":22,\"proto\":\"TCP\",\"alert\":{\"action\":\"allowed\",\"gid\":1,\"signature_id\":9000001,\"rev\":1,\"signature\":\"ANVAYA-LAB SCAN Inbound TCP port sweep\",\"category\":\"Attempted Information Leak\",\"severity\":2}}"
+  },
+  "ocsf": {
+    "class_uid": 2004,
+    "class_name": "Detection Finding",
+    "category_uid": 2,
+    "category_name": "Findings",
+    "activity_id": 1,
+    "activity_name": "Create",
+    "type_uid": 200401,
+    "type_name": "Detection Finding: Create",
+    "severity_id": 3,
+    "severity": "Medium",
+    "time": 1790742725000,
+    "time_dt": "2026-09-30T04:32:05Z",
+    "device": {
+      "hostname": "ids01",
+      "type_id": 13,
+      "type": "IDS"
+    },
+    "finding_info": {
+      "uid": "9000001",
+      "title": "ANVAYA-LAB SCAN Inbound TCP port sweep",
+      "types": [
+        "Attempted Information Leak"
+      ]
+    },
+    "evidences": [
+      {
+        "src_endpoint": {
+          "ip": "198.51.100.9",
+          "port": 40100
+        },
+        "dst_endpoint": {
+          "ip": "10.2.4.18",
+          "port": 22
+        },
+        "connection_info": {
+          "protocol_name": "tcp",
+          "direction_id": 0
+        }
+      }
+    ],
+    "metadata": {
+      "version": "1.9.0",
+      "uid": "e-64f70aaee53f",
+      "log_name": "eve-json",
+      "original_time": "2026-09-30T10:02:05.000000+0530",
+      "product": {
+        "vendor_name": "OISF",
+        "name": "Suricata"
+      }
+    },
+    "observables": [
+      {
+        "name": "evidences[0].src_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "198.51.100.9"
+      },
+      {
+        "name": "evidences[0].dst_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "10.2.4.18"
+      }
+    ],
+    "raw_data": "<134>Sep 30 10:02:05 ids01 suricata[2211]: {\"timestamp\":\"2026-09-30T10:02:05.000000+0530\",\"flow_id\":1500000000000900,\"in_iface\":\"eth1\",\"event_type\":\"alert\",\"src_ip\":\"198.51.100.9\",\"src_port\":40100,\"dest_ip\":\"10.2.4.18\",\"dest_port\":22,\"proto\":\"TCP\",\"alert\":{\"action\":\"allowed\",\"gid\":1,\"signature_id\":9000001,\"rev\":1,\"signature\":\"ANVAYA-LAB SCAN Inbound TCP port sweep\",\"category\":\"Attempted Information Leak\",\"severity\":2}}",
+    "unmapped": {
+      "syslog_pri": "134",
+      "syslog_time": "Sep 30 10:02:05",
+      "app": "suricata",
+      "pid": "2211",
+      "flow_id": "1500000000000900",
+      "in_iface": "eth1",
+      "event_type": "alert",
+      "alert": {
+        "action": "allowed",
+        "gid": "1",
+        "rev": "1"
+      }
+    }
+  },
+  "anvaya": {
+    "format": "suricata-eve-json",
+    "vendor": "OISF",
+    "product": "Suricata",
+    "device": "ids01",
+    "parser": "suricata-eve@1.0.0",
+    "rule_id": "eve-alert",
+    "parse_confidence": 90,
+    "confidence_breakdown": {
+      "required": 1.0,
+      "typed": 1.0,
+      "mapped": 0.5238
+    },
+    "source_timezone": "Asia/Kolkata",
+    "device_time_raw": "2026-09-30T10:02:05.000000+0530",
+    "clock_skew_s": 0,
+    "roundtrip": {
+      "ok": true,
+      "value_check": true,
+      "coverage": 1.0,
+      "dropped": 0
+    },
+    "lineage": [
+      {
+        "path": "time",
+        "spans": [
+          [
+            57,
+            88
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "metadata.original_time",
+        "spans": [
+          [
+            57,
+            88
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "device.hostname",
+        "spans": [
+          [
+            21,
+            26
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "evidences[0].src_endpoint.ip",
+        "spans": [
+          [
+            166,
+            178
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "evidences[0].src_endpoint.port",
+        "spans": [
+          [
+            191,
+            196
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "evidences[0].dst_endpoint.ip",
+        "spans": [
+          [
+            208,
+            217
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "evidences[0].dst_endpoint.port",
+        "spans": [
+          [
+            231,
+            233
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "evidences[0].connection_info.protocol_name",
+        "spans": [
+          [
+            243,
+            246
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "finding_info.uid",
+        "spans": [
+          [
+            299,
+            306
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "finding_info.title",
+        "spans": [
+          [
+            328,
+            366
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "finding_info.types[0]",
+        "spans": [
+          [
+            380,
+            406
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "severity",
+        "spans": [
+          [
+            419,
+            420
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "activity_name",
+        "spans": [
+          [
+            149,
+            154
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "unmapped.syslog_pri",
+        "spans": [
+          [
+            1,
+            4
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.syslog_time",
+        "spans": [
+          [
+            5,
+            20
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.app",
+        "spans": [
+          [
+            27,
+            35
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.pid",
+        "spans": [
+          [
+            36,
+            40
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.flow_id",
+        "spans": [
+          [
+            100,
+            116
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.in_iface",
+        "spans": [
+          [
+            129,
+            133
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.event_type",
+        "spans": [
+          [
+            149,
+            154
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.alert.action",
+        "spans": [
+          [
+            267,
+            274
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.alert.gid",
+        "spans": [
+          [
+            282,
+            283
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.alert.rev",
+        "spans": [
+          [
+            313,
+            314
+          ]
+        ],
+        "derived": false
+      }
+    ]
+  }
+}

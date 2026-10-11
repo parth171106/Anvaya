@@ -1,0 +1,322 @@
+{
+  "event_id": "e-899f4edf0030",
+  "raw": {
+    "raw_id": "r-899f4edf0030",
+    "seq": 164,
+    "size": 174,
+    "encoding": "utf-8",
+    "flags": [],
+    "transport": "udp",
+    "peer_ip": "127.0.0.1",
+    "received_at": 1790743032000,
+    "raw_sha256": "d12173d4509247b2d5e571a3922472f9262482d1ef617ef33b6ba152f74f4251",
+    "batch_id": 11,
+    "text": "<166>Sep 30 2026 10:07:12 fw01 : %ASA-6-302013: Built inbound TCP connection 77801 for outside:198.51.100.9/40133 (198.51.100.9/40133) to inside:10.2.4.18/443 (10.2.4.18/443)"
+  },
+  "ocsf": {
+    "class_uid": 4001,
+    "class_name": "Network Activity",
+    "category_uid": 4,
+    "category_name": "Network Activity",
+    "activity_id": 1,
+    "activity_name": "Open",
+    "type_uid": 400101,
+    "type_name": "Network Activity: Open",
+    "severity_id": 1,
+    "severity": "Informational",
+    "action_id": 1,
+    "action": "Allowed",
+    "disposition_id": 1,
+    "disposition": "Allowed",
+    "time": 1790743032000,
+    "time_dt": "2026-09-30T04:37:12Z",
+    "device": {
+      "hostname": "fw01",
+      "type_id": 9,
+      "type": "Firewall"
+    },
+    "connection_info": {
+      "protocol_name": "tcp",
+      "direction_id": 1,
+      "direction": "Inbound",
+      "uid": "77801"
+    },
+    "src_endpoint": {
+      "ip": "198.51.100.9",
+      "port": 40133
+    },
+    "dst_endpoint": {
+      "ip": "10.2.4.18",
+      "port": 443
+    },
+    "metadata": {
+      "version": "1.9.0",
+      "uid": "e-899f4edf0030",
+      "log_name": "syslog",
+      "original_time": "Sep 30 2026 10:07:12",
+      "product": {
+        "vendor_name": "Cisco",
+        "name": "ASA"
+      }
+    },
+    "observables": [
+      {
+        "name": "src_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "198.51.100.9"
+      },
+      {
+        "name": "dst_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "10.2.4.18"
+      }
+    ],
+    "raw_data": "<166>Sep 30 2026 10:07:12 fw01 : %ASA-6-302013: Built inbound TCP connection 77801 for outside:198.51.100.9/40133 (198.51.100.9/40133) to inside:10.2.4.18/443 (10.2.4.18/443)",
+    "unmapped": {
+      "syslog_pri": "166",
+      "asa_severity": "6",
+      "asa_message_id": "302013",
+      "src_zone": "outside",
+      "dst_zone": "inside",
+      "src_mapped": "198.51.100.9/40133",
+      "dst_mapped": "10.2.4.18/443"
+    }
+  },
+  "anvaya": {
+    "format": "cisco-asa-syslog",
+    "vendor": "Cisco",
+    "product": "ASA",
+    "device": "fw01",
+    "parser": "cisco-asa@1.0.0",
+    "rule_id": "asa-302013-inbound",
+    "parse_confidence": 91,
+    "confidence_breakdown": {
+      "required": 1.0,
+      "typed": 1.0,
+      "mapped": 0.5625
+    },
+    "source_timezone": "Asia/Kolkata",
+    "device_time_raw": "Sep 30 2026 10:07:12",
+    "clock_skew_s": 0,
+    "roundtrip": {
+      "ok": true,
+      "value_check": true,
+      "coverage": 1.0,
+      "dropped": 0
+    },
+    "lineage": [
+      {
+        "path": "time",
+        "spans": [
+          [
+            5,
+            25
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "metadata.original_time",
+        "spans": [
+          [
+            5,
+            25
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "device.hostname",
+        "spans": [
+          [
+            26,
+            30
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "activity_name",
+        "spans": [
+          [
+            40,
+            46
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "action",
+        "spans": [
+          [
+            40,
+            46
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "disposition",
+        "spans": [
+          [
+            40,
+            46
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "severity",
+        "spans": [
+          [
+            40,
+            46
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "connection_info.direction",
+        "spans": [
+          [
+            54,
+            61
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "connection_info.protocol_name",
+        "spans": [
+          [
+            62,
+            65
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "connection_info.uid",
+        "spans": [
+          [
+            77,
+            82
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "src_endpoint.ip",
+        "spans": [
+          [
+            95,
+            107
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "src_endpoint.port",
+        "spans": [
+          [
+            108,
+            113
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "dst_endpoint.ip",
+        "spans": [
+          [
+            145,
+            154
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "dst_endpoint.port",
+        "spans": [
+          [
+            155,
+            158
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.syslog_pri",
+        "spans": [
+          [
+            1,
+            4
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.asa_severity",
+        "spans": [
+          [
+            38,
+            39
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.asa_message_id",
+        "spans": [
+          [
+            40,
+            46
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.src_zone",
+        "spans": [
+          [
+            87,
+            94
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.src_mapped",
+        "spans": [
+          [
+            115,
+            133
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.dst_zone",
+        "spans": [
+          [
+            138,
+            144
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.dst_mapped",
+        "spans": [
+          [
+            160,
+            173
+          ]
+        ],
+        "derived": false
+      }
+    ]
+  }
+}

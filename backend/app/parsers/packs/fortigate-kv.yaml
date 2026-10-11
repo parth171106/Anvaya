@@ -1,0 +1,59 @@
+name: fortigate-kv
+version: 1.0.0
+origin: builtin
+priority: 20
+vendor: Fortinet
+product: FortiGate
+format: fortigate-kv
+device_type: Firewall
+source_timezone: Asia/Kolkata
+detect:
+  header: pri_only
+  body_regex: '^date=\d{4}-\d{2}-\d{2} time=\d{2}:\d{2}:\d{2} '
+  body_contains: [' devname=', ' logid=']
+header_fields:
+  pri: { to: unmapped.syslog_pri }
+extractor: { type: kv }
+rules:
+  - id: fgt-ssl-login-fail
+    when: { kv_equals: { subtype: vpn, action: ssl-login-fail } }
+    ocsf: { class_uid: 3002, activity: Logon, status: Failure, severity: Medium }
+    map:
+      date+time: { to: time, transform: { timestamp: '%Y-%m-%d %H:%M:%S' }, also: metadata.original_time }
+      devname: { to: device.hostname, also: dst_endpoint.hostname }
+      remip: { to: src_endpoint.ip, type: ip }
+      user: { to: user.name }
+      action: { to: status, transform: { enum: { ssl-login-fail: Failure } } }
+      reason: { to: status_detail }
+      msg: { to: message }
+      devid: { to: unmapped.devid }
+      logid: { to: unmapped.logid }
+      type: { to: unmapped.type }
+      subtype: { to: unmapped.subtype }
+      level: { to: unmapped.level }
+      vd: { to: unmapped.vd }
+      logdesc: { to: unmapped.logdesc }
+      tunneltype: { to: unmapped.tunneltype }
+  - id: fgt-tunnel-up
+    when: { kv_equals: { subtype: vpn, action: tunnel-up } }
+    ocsf: { class_uid: 3002, activity: Logon, status: Success, severity: Informational }
+    map:
+      date+time: { to: time, transform: { timestamp: '%Y-%m-%d %H:%M:%S' }, also: metadata.original_time }
+      devname: { to: device.hostname, also: dst_endpoint.hostname }
+      remip: { to: src_endpoint.ip, type: ip }
+      user: { to: user.name }
+      action: { to: status, transform: { enum: { tunnel-up: Success } } }
+      reason: { to: status_detail }
+      msg: { to: message }
+      devid: { to: unmapped.devid }
+      logid: { to: unmapped.logid }
+      type: { to: unmapped.type }
+      subtype: { to: unmapped.subtype }
+      level: { to: unmapped.level }
+      vd: { to: unmapped.vd }
+      logdesc: { to: unmapped.logdesc }
+      tunneltype: { to: unmapped.tunneltype }
+required: [time, user.name, src_endpoint.ip]
+tests:
+  - input: '<185>date=2026-09-30 time=10:05:00 devname="vpn01" devid="FGVM01TM00000001" logid="0101039426" type="event" subtype="vpn" level="alert" vd="root" logdesc="SSL VPN login fail" action="ssl-login-fail" tunneltype="ssl-web" remip=198.51.100.9 user="admin" reason="sslvpn_login_permission_denied" msg="SSL VPN user login failed"'
+    expect: { class_uid: 3002, status: Failure, user.name: admin, src_endpoint.ip: 198.51.100.9 }

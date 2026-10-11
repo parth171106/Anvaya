@@ -1,0 +1,269 @@
+{
+  "event_id": "e-b487689bfcd6",
+  "raw": {
+    "raw_id": "r-b487689bfcd6",
+    "seq": 1342,
+    "size": 102,
+    "encoding": "utf-8",
+    "flags": [],
+    "transport": "http",
+    "peer_ip": "127.0.0.1",
+    "received_at": 1790743443000,
+    "raw_sha256": "4f29c17441c6daeac27707f2a196a77a710375b1982f87c049499a091ba1738a",
+    "batch_id": 84,
+    "text": "EDGE|2026-09-30 10:13:06|br01|SESSION|ALLOW|tcp|10.2.4.31|52300|203.0.113.12|443|bytes=1200|rule=R-110"
+  },
+  "ocsf": {
+    "class_uid": 4001,
+    "class_name": "Network Activity",
+    "category_uid": 4,
+    "category_name": "Network Activity",
+    "activity_id": 6,
+    "activity_name": "Traffic",
+    "type_uid": 400106,
+    "type_name": "Network Activity: Traffic",
+    "severity_id": 1,
+    "severity": "Informational",
+    "action_id": 1,
+    "action": "Allowed",
+    "disposition_id": 1,
+    "disposition": "Allowed",
+    "time": 1790743386000,
+    "time_dt": "2026-09-30T04:43:06Z",
+    "device": {
+      "hostname": "br01",
+      "type_id": 12,
+      "type": "Router"
+    },
+    "connection_info": {
+      "protocol_name": "tcp",
+      "direction_id": 0
+    },
+    "src_endpoint": {
+      "ip": "10.2.4.31",
+      "port": 52300
+    },
+    "dst_endpoint": {
+      "ip": "203.0.113.12",
+      "port": 443
+    },
+    "traffic": {
+      "bytes": 1200
+    },
+    "metadata": {
+      "version": "1.9.0",
+      "uid": "e-b487689bfcd6",
+      "log_name": "edge-pipe",
+      "original_time": "2026-09-30 10:13:06",
+      "product": {
+        "vendor_name": "Acme",
+        "name": "EdgeRouter"
+      }
+    },
+    "observables": [
+      {
+        "name": "src_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "10.2.4.31"
+      },
+      {
+        "name": "dst_endpoint.ip",
+        "type_id": 2,
+        "type": "IP Address",
+        "value": "203.0.113.12"
+      }
+    ],
+    "raw_data": "EDGE|2026-09-30 10:13:06|br01|SESSION|ALLOW|tcp|10.2.4.31|52300|203.0.113.12|443|bytes=1200|rule=R-110",
+    "unmapped": {
+      "marker": "EDGE",
+      "record_type": "SESSION",
+      "rule": "R-110"
+    }
+  },
+  "anvaya": {
+    "format": "acme-edge-pipe",
+    "vendor": "Acme",
+    "product": "EdgeRouter",
+    "device": "br01",
+    "parser": "acme-edge@1.0.0",
+    "rule_id": "edge-session-allow",
+    "parse_confidence": 95,
+    "confidence_breakdown": {
+      "required": 1.0,
+      "typed": 1.0,
+      "mapped": 0.75
+    },
+    "source_timezone": "Asia/Kolkata",
+    "device_time_raw": "2026-09-30 10:13:06",
+    "clock_skew_s": 57,
+    "roundtrip": {
+      "ok": true,
+      "value_check": true,
+      "coverage": 1.0,
+      "dropped": 0
+    },
+    "lineage": [
+      {
+        "path": "time",
+        "spans": [
+          [
+            5,
+            24
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "metadata.original_time",
+        "spans": [
+          [
+            5,
+            24
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "device.hostname",
+        "spans": [
+          [
+            25,
+            29
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "action",
+        "spans": [
+          [
+            38,
+            43
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "activity_name",
+        "spans": [
+          [
+            38,
+            43
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "disposition",
+        "spans": [
+          [
+            38,
+            43
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "severity",
+        "spans": [
+          [
+            38,
+            43
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "connection_info.protocol_name",
+        "spans": [
+          [
+            44,
+            47
+          ]
+        ],
+        "derived": true
+      },
+      {
+        "path": "src_endpoint.ip",
+        "spans": [
+          [
+            48,
+            57
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "src_endpoint.port",
+        "spans": [
+          [
+            58,
+            63
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "dst_endpoint.ip",
+        "spans": [
+          [
+            64,
+            76
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "dst_endpoint.port",
+        "spans": [
+          [
+            77,
+            80
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "traffic.bytes",
+        "spans": [
+          [
+            87,
+            91
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.marker",
+        "spans": [
+          [
+            0,
+            4
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.record_type",
+        "spans": [
+          [
+            30,
+            37
+          ]
+        ],
+        "derived": false
+      },
+      {
+        "path": "unmapped.rule",
+        "spans": [
+          [
+            97,
+            102
+          ]
+        ],
+        "derived": false
+      }
+    ]
+  }
+}
