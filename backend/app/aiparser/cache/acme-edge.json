@@ -1,0 +1,14 @@
+{
+  "group_shape": "EDGE|x12",
+  "origin": "hand_authored",
+  "model": null,
+  "generated_at": 1790886480318,
+  "prompt_sha256": "b47651cc48c653a896ecb300e2768139ddcdd40994e858ae8d1a56210311ddf1",
+  "yaml": "name: acme-edge\nversion: 1.0.0\norigin: ai_draft\npriority: 40\nvendor: Acme\nproduct: EdgeRouter\nformat: acme-edge-pipe\ndevice_type: Router\nsource_timezone: Asia/Kolkata\ndetect:\n  header: none\n  body_regex: '^EDGE\\|'\n  delimited_field_count: { delimiter: '|', count: 12 }\nextractor:\n  type: delimited\n  delimiter: '|'\n  columns: [marker, ts, host, record_type, verdict, proto, src_ip, src_port, dst_ip, dst_port, bytes_kv, rule_kv]\nrules:\n  - id: edge-session-allow\n    when: { column_equals: { record_type: SESSION, verdict: ALLOW } }\n    ocsf: { class_uid: 4001, activity: Traffic, action: Allowed, disposition: Allowed, severity: Informational }\n    map: &edge_map\n      ts: { to: time, transform: { timestamp: '%Y-%m-%d %H:%M:%S' }, also: metadata.original_time }\n      host: { to: device.hostname }\n      verdict: { to: action, transform: { enum: { ALLOW: Allowed, DENY: Denied } } }\n      proto: { to: connection_info.protocol_name, transform: lower }\n      src_ip: { to: src_endpoint.ip, type: ip }\n      src_port: { to: src_endpoint.port, type: int }\n      dst_ip: { to: dst_endpoint.ip, type: ip }\n      dst_port: { to: dst_endpoint.port, type: int }\n      bytes_kv: { to: traffic.bytes, type: int, transform: { kv_value: true } }\n      marker: { to: unmapped.marker }\n      record_type: { to: unmapped.record_type }\n      rule_kv: { to: unmapped.rule, transform: { kv_value: true } }\n  - id: edge-session-deny\n    when: { column_equals: { record_type: SESSION, verdict: DENY } }\n    ocsf: { class_uid: 4001, activity: Refuse, action: Denied, disposition: Blocked, severity: Low }\n    map: *edge_map\nrequired: [time, src_endpoint.ip, dst_endpoint.ip]\ntests:\n  - input: 'EDGE|2026-09-30 10:13:06|br01|SESSION|ALLOW|tcp|10.2.4.31|52300|203.0.113.12|443|bytes=1200|rule=R-110'\n    expect: { class_uid: 4001, action: Allowed, dst_endpoint.port: 443, traffic.bytes: 1200 }\n",
+  "gate_report": {
+    "holdout": 6,
+    "all": 20,
+    "roundtrip": 20,
+    "ocsf_valid": 20
+  }
+}

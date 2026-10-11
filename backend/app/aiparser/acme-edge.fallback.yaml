@@ -1,0 +1,42 @@
+name: acme-edge
+version: 1.0.0
+origin: ai_draft
+priority: 40
+vendor: Acme
+product: EdgeRouter
+format: acme-edge-pipe
+device_type: Router
+source_timezone: Asia/Kolkata
+detect:
+  header: none
+  body_regex: '^EDGE\|'
+  delimited_field_count: { delimiter: '|', count: 12 }
+extractor:
+  type: delimited
+  delimiter: '|'
+  columns: [marker, ts, host, record_type, verdict, proto, src_ip, src_port, dst_ip, dst_port, bytes_kv, rule_kv]
+rules:
+  - id: edge-session-allow
+    when: { column_equals: { record_type: SESSION, verdict: ALLOW } }
+    ocsf: { class_uid: 4001, activity: Traffic, action: Allowed, disposition: Allowed, severity: Informational }
+    map: &edge_map
+      ts: { to: time, transform: { timestamp: '%Y-%m-%d %H:%M:%S' }, also: metadata.original_time }
+      host: { to: device.hostname }
+      verdict: { to: action, transform: { enum: { ALLOW: Allowed, DENY: Denied } } }
+      proto: { to: connection_info.protocol_name, transform: lower }
+      src_ip: { to: src_endpoint.ip, type: ip }
+      src_port: { to: src_endpoint.port, type: int }
+      dst_ip: { to: dst_endpoint.ip, type: ip }
+      dst_port: { to: dst_endpoint.port, type: int }
+      bytes_kv: { to: traffic.bytes, type: int, transform: { kv_value: true } }
+      marker: { to: unmapped.marker }
+      record_type: { to: unmapped.record_type }
+      rule_kv: { to: unmapped.rule, transform: { kv_value: true } }
+  - id: edge-session-deny
+    when: { column_equals: { record_type: SESSION, verdict: DENY } }
+    ocsf: { class_uid: 4001, activity: Refuse, action: Denied, disposition: Blocked, severity: Low }
+    map: *edge_map
+required: [time, src_endpoint.ip, dst_endpoint.ip]
+tests:
+  - input: 'EDGE|2026-09-30 10:13:06|br01|SESSION|ALLOW|tcp|10.2.4.31|52300|203.0.113.12|443|bytes=1200|rule=R-110'
+    expect: { class_uid: 4001, action: Allowed, dst_endpoint.port: 443, traffic.bytes: 1200 }
