@@ -1,0 +1,2 @@
+profiles: security_control, datetime, host
+source: https://schema.ocsf.io/schema/classes/<class>?profiles=security_control,datetime,host (JSON Schema) and /api/classes|objects/<name> (native, enum captions)
