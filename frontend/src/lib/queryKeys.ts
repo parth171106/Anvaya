@@ -1,0 +1,18 @@
+export const qk = {
+  health: ['health'] as const,
+  stats: ['stats'] as const,
+  events: (params: object = {}) => ['events', params] as const,
+  event: (id: string) => ['event', id] as const,
+  batches: ['ledger', 'batches'] as const,
+  witnesses: ['witnesses'] as const,
+  sources: ['sources'] as const,
+  quarantine: ['quarantine'] as const,
+  parsers: ['parsers'] as const,
+  draft: (id: string) => ['draft', id] as const,
+  incidents: ['incidents'] as const,
+  incident: (id: string) => ['incident', id] as const,
+  suggestions: ['search', 'suggestions'] as const,
+  delivery: ['delivery'] as const,
+  retention: ['retention'] as const,
+  demo: ['demo', 'state'] as const,
+};
