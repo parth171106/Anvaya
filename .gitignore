@@ -1,0 +1,11 @@
+data/
+**/keys/
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+frontend/test-results/
+frontend/playwright-report/
