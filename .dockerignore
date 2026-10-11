@@ -1,0 +1,10 @@
+.venv/
+data/
+frontend/
+bench/
+docs/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+backend/tests/
+*.md

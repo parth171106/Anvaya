@@ -1,0 +1,56 @@
+name: anvaya
+services:
+  api:
+    build:
+      context: .                      # repo root, so the image can include generator/
+      dockerfile: backend/Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3-slim}
+    image: anvaya-api
+    environment:
+      ANVAYA_DEMO_MODE: ${ANVAYA_DEMO_MODE:-1}
+      ANVAYA_DATA_DIR: /data
+      ANVAYA_SYSLOG_UDP_PORT: "5514"
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:3b
+      DISPLAY_TZ: Asia/Kolkata
+      SOURCE_TZ_DEFAULT: Asia/Kolkata
+    ports:
+      - "8000:8000"
+      - "5514:5514/udp"
+    volumes:
+      - anvaya-data:/data
+      - ./docs:/srv/docs:ro           # lets /api/stats show the latest measured `make bench` row
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).status == 200 else 1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./frontend
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:lts-slim}
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:stable-alpine}
+    image: anvaya-ui
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama}
+    profiles: ["llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  anvaya-data:
+  ollama-models:
