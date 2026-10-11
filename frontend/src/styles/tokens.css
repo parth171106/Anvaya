@@ -1,0 +1,37 @@
+/* The only file allowed to contain colour literals (UI_UX_BRIEF.md §2.9; enforced by scripts/no-raw-hex.mjs). */
+:root{
+  --paper:#F7F6F2; --surface:#FFFFFF; --ink:#14213D; --graphite:#4B5563; --rule:#DAD7CF; --seal:#9A3B1E;
+  --muted:#6B7280; --paper-sunk:#EFEDE6; --ink-soft:#24345A; --seal-hover:#82301A; --seal-tint:#F6E7E1;
+  --sev-info:#64748B; --sev-info-bg:#F1F5F9; --sev-low:#2563EB; --sev-low-bg:#EFF6FF;
+  --sev-medium:#A16207; --sev-medium-bg:#FEF3C7; --sev-high:#C2410C; --sev-high-bg:#FFEDD5;
+  --sev-critical:#9F1239; --sev-critical-bg:#FFE4E6;
+  --int-verified:#1E7B4F; --int-verified-bg:#E6F4EC; --int-tampered:#B42318; --int-tampered-bg:#FDECEA;
+  --int-mismatch:#A15C07; --int-mismatch-bg:#FEF0D9; --int-pending:#6B7280; --int-pending-bg:#F3F4F6;
+  --st-live:#1E7B4F; --st-warn:#A16207; --st-warn-bg:#FEF3C7; --st-down:#B42318; --st-down-bg:#FDECEA;
+  --dev-fw01:#1D5FA7; --dev-ids01:#6D3FA8; --dev-vpn01:#0E7C74; --dev-br01:#8A6D1F;
+  --fmt-asa:#3F5873; --fmt-eve:#7A5C99; --fmt-fgt:#2F7A6F; --fmt-edge:#7A6A3A; --fmt-unknown:#6B7280;
+  --lin-1:#1D5FA7; --lin-1-bg:#D6E3F1; --lin-2:#0E7C74; --lin-2-bg:#D2E9E7; --lin-3:#9A3B1E; --lin-3-bg:#EDDAD3;
+  --lin-4:#6D3FA8; --lin-4-bg:#E3D9EF; --lin-5:#A16207; --lin-5-bg:#F1E3CC; --lin-6:#3F6212; --lin-6-bg:#DCE4D1;
+  --lin-unmapped:#6B7280; --lin-unmapped-bg:#E5E7EB; --lin-tampered:#B42318; --lin-tampered-bg:#F9D3CF;
+  --font-display:"IBM Plex Serif",ui-serif,Georgia,serif;
+  --font-ui:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r-chip:4px; --r-control:6px; --r-panel:8px; --r-dialog:12px; --r-pill:999px;
+  --e-1:0 1px 2px rgba(20,33,61,0.06); --e-2:0 8px 24px rgba(20,33,61,0.14);
+  --m-fast:120ms; --m-base:200ms; --m-row:160ms; --m-emph:320ms; --m-connector:240ms; --m-count:600ms; --m-exit:160ms;
+  --ease-standard:cubic-bezier(0.2,0,0,1); --ease-decel:cubic-bezier(0.05,0.7,0.1,1); --ease-exit:cubic-bezier(0.3,0,1,1);
+  --on-ink:#FFFFFF;
+
+  /* shadcn/ui variables, set from the tokens above and never with their own values. */
+  --background:var(--paper); --foreground:var(--ink);
+  --card:var(--surface); --card-foreground:var(--ink);
+  --popover:var(--surface); --popover-foreground:var(--ink);
+  --primary:var(--seal); --primary-foreground:var(--on-ink);
+  --secondary:var(--paper-sunk); --secondary-foreground:var(--ink);
+  --muted-foreground:var(--muted); --accent:var(--paper-sunk); --accent-foreground:var(--ink);
+  --destructive:var(--int-tampered); --border:var(--rule); --input:var(--rule); --ring:var(--seal);
+  --radius:var(--r-control);
+}
+@media (prefers-reduced-motion: reduce){
+  :root{ --m-fast:0ms; --m-base:0ms; --m-row:0ms; --m-emph:0ms; --m-connector:0ms; --m-count:0ms; --m-exit:0ms; }
+}

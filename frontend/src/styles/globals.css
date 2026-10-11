@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Tailwind v4 maps the tokens here (v4's replacement for tailwind.config.ts). Every value is a token reference. */
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--paper); --color-surface: var(--surface); --color-ink: var(--ink); --color-graphite: var(--graphite);
+  --color-rule: var(--rule); --color-seal: var(--seal); --color-muted: var(--paper-sunk); --color-paper-sunk: var(--paper-sunk);
+  --color-ink-soft: var(--ink-soft); --color-seal-hover: var(--seal-hover); --color-seal-tint: var(--seal-tint);
+  --color-on-ink: var(--on-ink); --color-transparent: transparent; --color-current: currentColor;
+  --color-sev-info: var(--sev-info); --color-sev-info-bg: var(--sev-info-bg); --color-sev-low: var(--sev-low);
+  --color-sev-low-bg: var(--sev-low-bg); --color-sev-medium: var(--sev-medium); --color-sev-medium-bg: var(--sev-medium-bg);
+  --color-sev-high: var(--sev-high); --color-sev-high-bg: var(--sev-high-bg); --color-sev-critical: var(--sev-critical);
+  --color-sev-critical-bg: var(--sev-critical-bg);
+  --color-int-verified: var(--int-verified); --color-int-verified-bg: var(--int-verified-bg);
+  --color-int-tampered: var(--int-tampered); --color-int-tampered-bg: var(--int-tampered-bg);
+  --color-int-mismatch: var(--int-mismatch); --color-int-mismatch-bg: var(--int-mismatch-bg);
+  --color-int-pending: var(--int-pending); --color-int-pending-bg: var(--int-pending-bg);
+  --color-st-live: var(--st-live); --color-st-warn: var(--st-warn); --color-st-warn-bg: var(--st-warn-bg);
+  --color-st-down: var(--st-down); --color-st-down-bg: var(--st-down-bg);
+  --color-dev-fw01: var(--dev-fw01); --color-dev-ids01: var(--dev-ids01); --color-dev-vpn01: var(--dev-vpn01);
+  --color-dev-br01: var(--dev-br01);
+  --color-fmt-asa: var(--fmt-asa); --color-fmt-eve: var(--fmt-eve); --color-fmt-fgt: var(--fmt-fgt);
+  --color-fmt-edge: var(--fmt-edge); --color-fmt-unknown: var(--fmt-unknown);
+  --color-lin-tampered: var(--lin-tampered); --color-lin-tampered-bg: var(--lin-tampered-bg);
+
+  /* shadcn primitive names */
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground); --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground); --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground); --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-display: var(--font-display); --font-ui: var(--font-ui); --font-mono: var(--font-mono); --font-sans: var(--font-ui);
+
+  --radius-chip: var(--r-chip); --radius-control: var(--r-control); --radius-panel: var(--r-panel);
+  --radius-dialog: var(--r-dialog); --radius-pill: var(--r-pill);
+  --radius-sm: var(--r-chip); --radius-md: var(--r-control); --radius-lg: var(--r-panel); --radius-xl: var(--r-dialog);
+
+  --shadow-e1: var(--e-1); --shadow-e2: var(--e-2);
+  --shadow-xs: var(--e-1); --shadow-sm: var(--e-1); --shadow-md: var(--e-2); --shadow-lg: var(--e-2);
+
+  --text-display: 32px; --text-display--line-height: 40px;
+  --text-h1: 26px; --text-h1--line-height: 34px;
+  --text-h2: 20px; --text-h2--line-height: 28px;
+  --text-h3: 17px; --text-h3--line-height: 24px;
+  --text-body-lg: 18px; --text-body-lg--line-height: 28px;
+  --text-body: 15px; --text-body--line-height: 24px;
+  --text-label: 14px; --text-label--line-height: 20px;
+  --text-mono: 14px; --text-mono--line-height: 22px;
+  --text-mono-lg: 16px; --text-mono-lg--line-height: 26px;
+  --text-kpi: 40px; --text-kpi--line-height: 44px;
+  --text-ruler: 12px; --text-ruler--line-height: 16px;
+  --text-nav: 13px; --text-nav--line-height: 16px;
+  --text-chip: 13px; --text-chip--line-height: 18px;
+
+  --ease-standard: var(--ease-standard); --ease-decel: var(--ease-decel); --ease-exit: var(--ease-exit);
+}
+
+@utility duration-fast { transition-duration: var(--m-fast); }
+@utility duration-base { transition-duration: var(--m-base); }
+@utility duration-row { transition-duration: var(--m-row); }
+@utility duration-emph { transition-duration: var(--m-emph); }
+@utility tabular { font-variant-numeric: tabular-nums; }
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--font-ui);
+    font-size: 15px; line-height: 24px; -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  *, ::before, ::after { border-color: var(--rule); }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+  ::selection { background: var(--seal-tint); }
+}
+
+@keyframes shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--paper-sunk) 0%, var(--surface) 50%, var(--paper-sunk) 100%);
+  background-size: 800px 100%; animation: shimmer 1.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .skeleton-shimmer { animation: none; background: var(--paper-sunk); } }
+
+/* Live Feed row insertion (--m-row) and the device-colour left-rule flash (100% -> 60% over 600 ms). */
+@keyframes row-in { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes rule-flash { from { opacity: 1; } to { opacity: 0.6; } }
+.feed-row-new { animation: row-in var(--m-row) var(--ease-decel); }
+.feed-row-new .feed-rule { animation: rule-flash 600ms var(--ease-standard); }
+.feed-rule { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) { .feed-row-new { animation: row-in 80ms linear; } .feed-row-new .feed-rule { animation: none; } }
+
+/* Lineage connector: draws over --m-connector via stroke-dashoffset; appears at once under reduced motion. */
+@keyframes lineage-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.lineage-draw { stroke-dasharray: 1; stroke-dashoffset: 0; animation: lineage-draw var(--m-connector) var(--ease-standard); }
