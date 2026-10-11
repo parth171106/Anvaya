@@ -2,6 +2,8 @@
 
 Smart India Hackathon 2026 · **SIH26156 Universal Log Pre-processing Framework** · NTRO · Blockchain & Cybersecurity · Software
 
+**Demo video:** https://youtu.be/E_oxEl3_dA8
+
 ANVAYA ingests logs from perimeter devices (firewall, IDS, VPN, router) in any format and turns each one into a standard
 OCSF record that can be proven faithful to the original:
 
