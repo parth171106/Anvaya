@@ -1,8 +1,8 @@
 from typing import Literal
 from pydantic import BaseModel
 
-DeviceId = Literal["fw01", "ids01", "vpn01", "br01"]
-FormatId = Literal["cisco-asa-syslog", "suricata-eve-json", "fortigate-kv", "acme-edge-pipe"]
+DeviceId = str
+FormatId = str
 Severity = Literal["Informational", "Low", "Medium", "High", "Critical"]
 QuarantineReason = Literal["no_fingerprint", "no_rule", "parse_error", "schema_invalid", "roundtrip_fail"]
 

@@ -1,9 +1,11 @@
 import json
+import re
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.api.errors import ApiError
+from app.core.container import IdempotencyConflict
 
 MAX_BODY = 8 * 1024 * 1024
 router = APIRouter()
@@ -30,7 +32,17 @@ async def ingest_route(request: Request):
     if not (ctype.startswith("text/plain") or ctype.startswith("application/json")):
         raise ApiError(400, "bad_request", "Use text/plain or application/json")
     c = request.app.state.c
+    if request.headers.get("x-anvaya-require-live") == "true" and c.cfg.demo_mode:
+        raise ApiError(409, "live_mode_required", "Collector requires a live-mode API")
     peer = request.client.host if request.client else "127.0.0.1"
-    recs = [c.ingest(line, "http", peer) for line in split_body(body, ctype)]
+    lines = split_body(body, ctype)
+    key = request.headers.get("idempotency-key")
+    if key is not None and (len(lines) != 1 or not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", key)):
+        raise ApiError(422, "validation_error", "Idempotency-Key requires one log and 1-128 letters, digits, . _ : or -")
+    try:
+        recs = [c.ingest(line, "http", peer, idempotency_key=key) for line in lines]
+    except IdempotencyConflict as exc:
+        raise ApiError(409, "idempotency_conflict", str(exc)) from exc
     return JSONResponse({"accepted": len(recs), "raw_ids": [r.raw_id for r in recs],
-                         "flagged": sum(1 for r in recs if r.meta.flags)}, status_code=202)
+                         "flagged": sum(1 for r in recs if r.meta.flags)}, status_code=202,
+                        headers={"Idempotency-Key": key} if key is not None else None)

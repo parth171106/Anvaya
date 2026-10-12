@@ -86,7 +86,15 @@ class PipelineWorker:
                     batch.append(await asyncio.wait_for(self.c.queue.get(), left))
                 except TimeoutError:
                     break
-            self.process(batch)
+            try:
+                self.process(batch)
+            except Exception:
+                # A database failure must not strand records removed from the in-memory queue.
+                for rid in batch:
+                    rec = self.c.repo.con.execute("SELECT status FROM raw_events WHERE raw_id=?", (rid,)).fetchone()
+                    if rec and rec[0] == "pending":
+                        self.c.queue.put_nowait(rid)
+                raise  # the supervisor backs off before restarting this loop
 
     def drain(self) -> None:
         """Process everything queued right now (tests and the self-check)."""

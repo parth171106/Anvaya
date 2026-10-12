@@ -17,6 +17,10 @@ class Config:
     silence_min_seconds: float
     display_tz: str
     source_tz_default: str
+    syslog_bind_host: str = "0.0.0.0"
+    auth_file: Path | None = None
+    auth_required: bool = False
+    public_origin: str = ""
 
 
 def load(env=os.environ) -> Config:
@@ -34,4 +38,8 @@ def load(env=os.environ) -> Config:
         silence_min_seconds=float(env.get("SILENCE_MIN_SECONDS", "15" if demo else "60")),
         display_tz=env.get("DISPLAY_TZ", "Asia/Kolkata"),
         source_tz_default=env.get("SOURCE_TZ_DEFAULT", "Asia/Kolkata"),
+        syslog_bind_host=env.get("ANVAYA_SYSLOG_BIND_HOST", "0.0.0.0"),
+        auth_file=Path(env["ANVAYA_AUTH_FILE"]) if env.get("ANVAYA_AUTH_FILE") else None,
+        auth_required=env.get("ANVAYA_AUTH_REQUIRED", "0") == "1",
+        public_origin=env.get("ANVAYA_PUBLIC_ORIGIN", "").rstrip("/"),
     )

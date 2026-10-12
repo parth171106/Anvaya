@@ -4,7 +4,7 @@ from app.api.deps import C
 from app.api.schemas import Health, Stats
 
 router = APIRouter(prefix="/api")
-OK = {"ok", "ready", "air_gapped"}
+OK = {"ok", "ready", "air_gapped", "fallback", "not_checked"}
 
 
 @router.get("/health", response_model=Health)
@@ -24,6 +24,7 @@ async def health(c: C):
                           "total": len(c.witnesses)}
     comps["llm"] = {"status": "ready" if await c.llm.ready() else "fallback", "model": c.cfg.ollama_model}
     comps["network"] = c.network_status()
+    comps["pipeline"] = {"status": "ok", "pending": len(c.repo.pending_raw_ids()), "queued": c.queue.qsize()}
     if c.restarted:
         comps["monitors"] = {"status": "restarted", "detail": ", ".join(sorted(c.restarted))}
     status = "ok" if all(v["status"] in OK for v in comps.values()) else "degraded"

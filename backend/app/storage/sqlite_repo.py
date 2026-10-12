@@ -22,7 +22,7 @@ def dumps(o) -> str:
 
 
 class SqliteRepository:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, durable: bool = False):
         self.path = Path(db_path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fresh = not self.path.exists()
@@ -30,10 +30,14 @@ class SqliteRepository:
         self.con = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self.con.row_factory = sqlite3.Row
         self.con.execute("PRAGMA journal_mode=WAL")
-        self.con.execute("PRAGMA synchronous=NORMAL")
+        self.con.execute("PRAGMA synchronous=FULL" if durable else "PRAGMA synchronous=NORMAL")
         self.con.execute("PRAGMA foreign_keys=ON")
         if fresh:
             self.con.executescript(SCHEMA.read_text(encoding="utf-8"))
+        # Additive migration: retain receipts across restarts without rewriting existing logs.
+        self.con.execute("CREATE TABLE IF NOT EXISTS ingest_receipts ("
+                         "idempotency_key TEXT PRIMARY KEY, payload_sha256 TEXT NOT NULL,"
+                         "raw_id TEXT NOT NULL REFERENCES raw_events(raw_id))")
 
     def close(self) -> None:
         self.con.close()
@@ -61,6 +65,12 @@ class SqliteRepository:
         return _Tx(self.con)
 
     # ---- raw_events -------------------------------------------------------------------------------------------
+    def ingest_receipt(self, key: str):
+        return self.con.execute("SELECT * FROM ingest_receipts WHERE idempotency_key=?", (key,)).fetchone()
+
+    def insert_ingest_receipt(self, key: str, rec: RawRecord) -> None:
+        self.con.execute("INSERT INTO ingest_receipts VALUES (?,?,?)", (key, rec.raw_sha256, rec.raw_id))
+
     def insert_raw(self, rec: RawRecord) -> None:
         self.con.execute(
             "INSERT INTO raw_events(seq, raw_id, raw_sha256, size, segment, offset, encoding, flags, transport, peer_ip,"
@@ -78,6 +88,9 @@ class SqliteRepository:
 
     def raw_records(self) -> list[RawRecord]:
         return [self._raw(r) for r in self.con.execute("SELECT * FROM raw_events ORDER BY seq")]
+
+    def pending_raw_ids(self) -> list[str]:
+        return [r[0] for r in self.con.execute("SELECT raw_id FROM raw_events WHERE status='pending' ORDER BY seq")]
 
     def get_raw(self, raw_id: str) -> RawRecord | None:
         r = self.con.execute("SELECT * FROM raw_events WHERE raw_id=?", (raw_id,)).fetchone()

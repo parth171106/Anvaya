@@ -5,6 +5,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import C
+from app.auth import COOKIE
 
 router = APIRouter(prefix="/api")
 PING_S = 15
@@ -21,16 +22,25 @@ async def stream(request: Request, c: C):
     q, backlog = c.bus.subscribe(int(last) if last.isdigit() else None)
 
     async def gen():
+        auth = request.app.state.auth
+        valid = lambda: not auth.enabled or auth.session(request.cookies.get(COOKIE, ""))
         try:
             yield "retry: 1500\n\n"
             if backlog is None:  # the client is further behind than the replay buffer
                 yield "event: resync\ndata: {}\n\n"
             for m in backlog or []:
+                if not valid():
+                    return
                 yield frame(m)
             while True:
                 try:
-                    yield frame(await asyncio.wait_for(q.get(), PING_S))
+                    message = await asyncio.wait_for(q.get(), PING_S)
+                    if not valid():
+                        return
+                    yield frame(message)
                 except TimeoutError:
+                    if not valid():
+                        return
                     yield ": ping\n\n"
         finally:
             c.bus.unsubscribe(q)

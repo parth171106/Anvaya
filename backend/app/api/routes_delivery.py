@@ -35,4 +35,4 @@ async def parquet(c: C, req: ExportReq | None = None):
 
 @router.get("/reports/retention", response_model=RetentionReport)
 async def retention(c: C):
-    return build_report(c.repo, c.clock.now_ms())
+    return build_report(c.repo, c.clock.now_ms(), demo_mode=c.cfg.demo_mode)
