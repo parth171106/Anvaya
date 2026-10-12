@@ -170,7 +170,7 @@ async def test_unknown_source_flow(api, tmp_path):
         return (await api.get("/api/quarantine")).json()["total"] == 0
     assert await wait_for(replayed)
     names = [p["name"] for p in (await api.get("/api/parsers")).json()["items"]]
-    assert names == ["suricata-eve", "fortigate-kv", "cisco-asa", "acme-edge"]
+    assert names == ["suricata-eve", "fortigate-kv", "cisco-asa", "windows-security", "acme-edge"]
 
 
 async def test_demo_controls_and_reset(api):

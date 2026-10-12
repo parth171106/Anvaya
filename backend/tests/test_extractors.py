@@ -20,7 +20,7 @@ def spans(res):
 
 
 def test_detection_order():
-    assert [p.name for p in REG.packs] == ["suricata-eve", "fortigate-kv", "cisco-asa"]
+    assert [p.name for p in REG.packs] == ["suricata-eve", "fortigate-kv", "cisco-asa", "windows-security"]
     assert [parse(t)[0].name for t in (ASA, EVE, FGT)] == ["cisco-asa", "suricata-eve", "fortigate-kv"]
     assert REG.detect(split(EDGE), EDGE) is None
 

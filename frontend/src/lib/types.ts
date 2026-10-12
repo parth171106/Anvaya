@@ -1,6 +1,6 @@
 // Exactly BACKEND_SCHEMA.md §6.2 (extracted verbatim), plus the few API shapes it doesn't list, at the end.
-export type DeviceId = 'fw01' | 'ids01' | 'vpn01' | 'br01';
-export type FormatId = 'cisco-asa-syslog' | 'suricata-eve-json' | 'fortigate-kv' | 'acme-edge-pipe';
+export type DeviceId = string;
+export type FormatId = string;
 export type Severity = 'Informational' | 'Low' | 'Medium' | 'High' | 'Critical';
 export type DemoPhase = 'idle' | 'scripted' | 'steady';
 export type QuarantineReason = 'no_fingerprint' | 'no_rule' | 'parse_error' | 'schema_invalid' | 'roundtrip_fail';

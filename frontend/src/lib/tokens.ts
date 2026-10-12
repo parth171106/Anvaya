@@ -11,10 +11,11 @@ const FORMATS: Record<FormatId, { label: string; color: string }> = {
   'suricata-eve-json': { label: 'JSON · EVE', color: 'var(--fmt-eve)' },
   'fortigate-kv': { label: 'key=value', color: 'var(--fmt-fgt)' },
   'acme-edge-pipe': { label: 'pipe-delimited', color: 'var(--fmt-edge)' },
+  'windows-security-json': { label: 'Windows sign-in', color: 'var(--fmt-eve)' },
 };
 
 export function formatChip(format: FormatId | 'unknown' | string): { label: string; color: string } {
-  return FORMATS[format as FormatId] ?? { label: 'unrecognised', color: 'var(--fmt-unknown)' };
+  return FORMATS[format as FormatId] ?? { label: format === 'unknown' ? 'unrecognised' : format, color: 'var(--fmt-unknown)' };
 }
 
 const SEV: Record<Severity, string> = {

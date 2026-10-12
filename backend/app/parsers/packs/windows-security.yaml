@@ -1,0 +1,33 @@
+name: windows-security
+version: 1.0.0
+origin: builtin
+priority: 40
+vendor: Microsoft
+product: Windows Security
+device_type: Unknown
+format: windows-security-json
+source_timezone: UTC
+detect:
+  header: none
+  body_json_has: [source, event_id, timestamp, computer, record_id, raw_xml]
+extractor: { type: json }
+rules:
+  - id: windows-logon-success
+    when: { json_equals: { source: windows-security, event_id: '4624' } }
+    ocsf: { class_uid: 3002, activity: Logon, status: Success, severity: Informational }
+    map: &fields
+      timestamp: { to: time, transform: { timestamp: '%Y-%m-%dT%H:%M:%S.%f%z' }, also: metadata.original_time }
+      computer: { to: device.hostname, also: dst_endpoint.hostname }
+      user_name: { to: user.name }
+      user_domain: { to: user.domain }
+      source_ip: { to: src_endpoint.ip, type: ip }
+      source_port: { to: src_endpoint.port, type: int }
+      workstation: { to: src_endpoint.hostname }
+      record_id: { to: unmapped.windows_record_id }
+      logon_type: { to: unmapped.windows_logon_type }
+      raw_xml: { to: unmapped.windows_event_xml }
+  - id: windows-logon-failure
+    when: { json_equals: { source: windows-security, event_id: '4625' } }
+    ocsf: { class_uid: 3002, activity: Logon, status: Failure, severity: Medium }
+    map: *fields
+required: [time, device.hostname, user.name]
