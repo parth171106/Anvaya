@@ -19,6 +19,15 @@ Everything runs offline in Docker. All demo traffic is **synthetic lab data** fr
 
 ## Run it
 
+For real local logs, see [Live-log pilot](docs/LIVE_PILOT.md). On Windows, `pilot.ps1 Start`
+serves the live console at localhost:8081; `pilot.ps1 Collect` reads actual Windows sign-ins
+with Security-log permission. Live storage is separate from the demo. The commands below
+continue to run the synthetic demonstration.
+
+For a single-server online deployment with administrator sign-in, collector API keys and
+HTTPS, see [Deployment guide](docs/DEPLOYMENT.md) and `docker-compose.deploy.yml`.
+The deployment package still needs Docker/cloud validation on the selected host.
+
 Prerequisites: Docker with the Compose plugin; for local development also Python 3.11+ and Node.js LTS.
 
 ```bash

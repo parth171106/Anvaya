@@ -1,0 +1,60 @@
+# One persistent Linux VM. Separate from the local pilot and synthetic demonstration.
+name: anvaya-deploy
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        PYTHON_IMAGE: python:3.13-slim
+    environment:
+      ANVAYA_DEMO_MODE: "0"
+      ANVAYA_DATA_DIR: /data
+      ANVAYA_AUTH_REQUIRED: "1"
+      ANVAYA_AUTH_FILE: /run/secrets/auth.json
+      ANVAYA_PUBLIC_ORIGIN: https://${ANVAYA_DOMAIN:?Set ANVAYA_DOMAIN in .env.deploy}
+      OLLAMA_URL: http://127.0.0.1:9
+    volumes:
+      - deploy-data:/data
+      - ./secrets/auth.json:/run/secrets/auth.json:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  ui:
+    build:
+      context: ./frontend
+      args:
+        NODE_IMAGE: node:22-bookworm-slim
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logs
+  gateway:
+    image: caddy:2-alpine
+    environment:
+      ANVAYA_DOMAIN: ${ANVAYA_DOMAIN:?Set ANVAYA_DOMAIN in .env.deploy}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - ui
+    restart: unless-stopped
+    logging: *logs
+volumes:
+  deploy-data:
+  caddy-data:
+  caddy-config:

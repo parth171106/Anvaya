@@ -2,8 +2,9 @@
 // or if a console.log remains in src/ (TRD.md §17).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('../src', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const root = fileURLToPath(new URL('../src', import.meta.url));
 const HEX = /#[0-9a-fA-F]{3,8}\b/;
 const LOG = /\bconsole\.log\s*\(/;
 const problems = [];

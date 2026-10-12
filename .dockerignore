@@ -1,4 +1,6 @@
 .venv/
+secrets/
+.env*
 data/
 frontend/
 bench/

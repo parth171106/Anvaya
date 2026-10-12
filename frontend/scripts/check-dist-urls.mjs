@@ -3,8 +3,9 @@
 // (React, Redux/Zustand internals, React Router, a polyfill note). None of these are ever fetched.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dist = new URL('../dist', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const dist = fileURLToPath(new URL('../dist', import.meta.url));
 const ALLOW = [
   /^https?:\/\/(localhost|127\.0\.0\.1)\b/,
   /^http:\/\/www\.w3\.org\//,

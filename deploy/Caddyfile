@@ -1,0 +1,8 @@
+{$ANVAYA_DOMAIN} {
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy same-origin
+    }
+    reverse_proxy ui:80
+}
