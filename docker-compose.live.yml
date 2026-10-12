@@ -1,0 +1,29 @@
+# Standalone live-pilot stack; never merge with docker-compose.yml (the demo stack).
+name: anvaya-live
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      ANVAYA_DEMO_MODE: "0"
+      ANVAYA_DATA_DIR: /data
+      ANVAYA_SYSLOG_BIND_HOST: "0.0.0.0"
+      ANVAYA_SYSLOG_UDP_PORT: "5514"
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:3b
+    ports:
+      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:5515:5514/udp"
+    volumes:
+      - live-data:/data
+    restart: unless-stopped
+  ui:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+volumes:
+  live-data:
