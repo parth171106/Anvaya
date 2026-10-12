@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.api.deps import C
@@ -22,14 +22,18 @@ class ExportReq(BaseModel):
 
 
 @router.post("/export/parquet", response_model=ParquetExport)
-async def parquet(c: C, req: ExportReq | None = None):
+async def parquet(request: Request, c: C, req: ExportReq | None = None):
     req = req or ExportReq()
+    if c.cfg.multi_user and len(list_exports(c.cfg.data_dir / "lake")) >= 5:
+        raise ApiError(409, "export_limit", "This pilot allows five stored exports per workspace. Contact the operator to remove old exports.")
     try:
         out = export_parquet(c.repo, c.cfg.data_dir / "lake", req.from_ms, req.to_ms)
     except OSError:
         raise ApiError(503, "dependency_unavailable", "Couldn't write to the data lake folder. Check that /data/lake "
                                                       "is writable.")
-    c.repo.audit(c.clock.now_ms(), "analyst@ntro-demo", "export.parquet", out["file"], {"rows": out["rows"]})
+    principal = getattr(request.state, "principal", None)
+    actor = principal["username"] if principal else "analyst@ntro-demo"
+    c.repo.audit(c.clock.now_ms(), actor, "export.parquet", out["file"], {"rows": out["rows"]})
     return out
 
 

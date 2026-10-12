@@ -1,15 +1,62 @@
+# Runtime data and storage
 data/
+secrets/
 **/keys/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs (preserving test samples)
+*.log
+!backend/tests/samples/**
+
+# Environment configurations and credentials
+.env
+.env.*
+!.env*.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.cert
+*.crt
+
+# Dependencies & build artifacts
 node_modules/
 dist/
+frontend/dist/
+.npm-cache/
+*.tar.gz
+*.tar
+*.zip
+
+# Virtual environments
 .venv/
+venv/
+ENV/
+env/
+
+# Python caches & bytecode
 __pycache__/
 *.egg-info/
+*.pyc
+*.pyo
+*.pyd
+
+# Test caches & reports
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 frontend/test-results/
 frontend/playwright-report/
-.npm-cache/
-secrets/
-.env
-.env.deploy
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+

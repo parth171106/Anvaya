@@ -21,6 +21,10 @@ class Config:
     auth_file: Path | None = None
     auth_required: bool = False
     public_origin: str = ""
+    multi_user: bool = False
+    public_signup: bool = False
+    max_accounts: int = 10
+    workspace_raw_limit: int = 100 * 1024 * 1024
 
 
 def load(env=os.environ) -> Config:
@@ -42,4 +46,8 @@ def load(env=os.environ) -> Config:
         auth_file=Path(env["ANVAYA_AUTH_FILE"]) if env.get("ANVAYA_AUTH_FILE") else None,
         auth_required=env.get("ANVAYA_AUTH_REQUIRED", "0") == "1",
         public_origin=env.get("ANVAYA_PUBLIC_ORIGIN", "").rstrip("/"),
+        multi_user=env.get("ANVAYA_MULTI_USER", "0") == "1",
+        public_signup=env.get("ANVAYA_PUBLIC_SIGNUP", "0") == "1",
+        max_accounts=int(env.get("ANVAYA_MAX_ACCOUNTS", "10")),
+        workspace_raw_limit=int(env.get("ANVAYA_WORKSPACE_RAW_LIMIT", str(100 * 1024 * 1024))),
     )

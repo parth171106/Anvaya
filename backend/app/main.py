@@ -12,9 +12,12 @@ from fastapi.responses import Response
 from app.api import (errors, routes_delivery, routes_demo, routes_events, routes_health, routes_incidents, routes_ledger,
                      routes_parsers, routes_search, routes_sources, routes_stream)
 from app.api.errors import not_found
+from app.api import routes_accounts, routes_legal
+from app.api.deps import C
 from app.auth import Auth, AuthMiddleware, router as auth_router
 from app.core import config
 from app.core.container import Container
+from app.core.workspaces import Workspaces
 from app.ingest import http as ingest_http
 from app.ingest.udp import start_udp
 
@@ -87,6 +90,11 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
             c.close_stores()
             raise
         tasks = background_tasks(c) + [asyncio.create_task(c.llm.warmup(), name="llm-warmup")]
+        workspaces = app.state.workspaces = Workspaces(cfg, c, container_factory, background_tasks)
+        if auth.accounts:
+            for account in auth.accounts.list():
+                if not account["disabled"]:
+                    workspaces.get(account["id"])
         log.info("ANVAYA ready (demo_mode=%s, data=%s)", cfg.demo_mode, cfg.data_dir)
         try:
             yield
@@ -98,7 +106,10 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
             if cfg.demo_mode and c.demo.task:
                 c.demo.task.cancel()
             await asyncio.gather(*tasks, *([c.demo.task] if cfg.demo_mode and c.demo.task else []), return_exceptions=True)
+            await workspaces.close()
             c.close_stores()
+            if auth.accounts:
+                auth.accounts.close()
 
     app = FastAPI(title="ANVAYA", version="1.0.0", lifespan=lifespan)
     app.state.auth = auth
@@ -107,6 +118,8 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
     app.add_middleware(AuthMiddleware, auth=auth)
     errors.install(app)
     app.include_router(auth_router)
+    app.include_router(routes_accounts.router)
+    app.include_router(routes_legal.router)
     app.include_router(ingest_http.router)
     for r in (routes_health, routes_events, routes_ledger, routes_sources, routes_parsers, routes_incidents,
               routes_search, routes_delivery, routes_demo, routes_stream):
@@ -118,8 +131,7 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
         return {"status": "ok"}
 
     @app.get("/api/raw/{raw_id}")
-    async def raw(raw_id: str):
-        c = app.state.c
+    async def raw(raw_id: str, c: C):
         rec = c.repo.get_raw(raw_id)  # stored hash comes from raw_events (what verify compares against)
         if not rec:
             raise not_found("Raw record")

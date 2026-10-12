@@ -11,6 +11,11 @@ services:
       ANVAYA_DEMO_MODE: "0"
       ANVAYA_DATA_DIR: /data
       ANVAYA_AUTH_REQUIRED: "1"
+      ANVAYA_MULTI_USER: "1"
+      ANVAYA_PUBLIC_SIGNUP: "1"
+      ANVAYA_MAX_ACCOUNTS: "10"
+      ANVAYA_OPERATOR_NAME: ${ANVAYA_OPERATOR_NAME:-ANVAYA project team}
+      ANVAYA_SUPPORT_CONTACT: ${ANVAYA_SUPPORT_CONTACT:-anvaya-sih@proton.me}
       ANVAYA_AUTH_FILE: /run/secrets/auth.json
       ANVAYA_PUBLIC_ORIGIN: https://${ANVAYA_DOMAIN:?Set ANVAYA_DOMAIN in .env.deploy}
       OLLAMA_URL: http://127.0.0.1:9

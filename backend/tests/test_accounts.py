@@ -1,0 +1,212 @@
+"""Synthetic accounts/logs exercise isolation, upgrade compatibility and enrollment."""
+import asyncio
+import io
+import json
+import zipfile
+from dataclasses import replace
+from urllib.parse import urlsplit
+
+import httpx
+import pytest
+from starlette.requests import Request
+
+from app.accounts import TERMS_VERSION
+from app.auth import Auth, COOKIE, digest, make_credentials
+from app.api.routes_stream import stream
+from app.main import create_app
+from tests.test_auth import ORIGIN, CONSOLE, PASSWORD, KEY, sign_in
+from tests.test_live_pilot import live_cfg, make_container, xml_fixture
+from collectors.windows_auth import event_payload
+
+
+@pytest.fixture
+def multi_cfg(tmp_path):
+    path = tmp_path / "auth.json"
+    path.write_text(json.dumps(make_credentials("admin", PASSWORD, KEY)))
+    return replace(live_cfg(tmp_path), auth_file=path, auth_required=True, public_origin=ORIGIN, multi_user=True)
+
+
+@pytest.fixture
+async def multi(multi_cfg):
+    app = create_app(multi_cfg, container_factory=make_container)
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN) as client:
+            yield app, client
+
+
+async def accept_owner(client):
+    assert (await sign_in(client)).status_code == 200
+    assert (await client.post("/api/auth/accept-terms", json={"terms_version": TERMS_VERSION}, headers=CONSOLE)).status_code == 200
+
+
+async def enroll(app, owner, name):
+    inv = await owner.post("/api/admin/invites", headers=CONSOLE)
+    assert inv.status_code == 201
+    invite = urlsplit(inv.json()["url"]).fragment.removeprefix("invite=")
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url=ORIGIN)
+    result = await client.post("/api/auth/register", json={"invite": invite, "username": name,
+                               "password": PASSWORD, "terms_version": TERMS_VERSION}, headers=CONSOLE)
+    assert result.status_code == 201, result.text
+    assert (await client.post("/api/auth/login", json={"username": name, "password": PASSWORD}, headers=CONSOLE)).status_code == 200
+    return client, result.json()["account_id"], invite
+
+
+async def test_invitation_terms_privileges_and_public_notices(multi):
+    app, owner = multi
+    assert (await owner.get("/api/legal")).json()["version"] == TERMS_VERSION
+    assert (await owner.post("/api/admin/invites", headers=CONSOLE)).status_code == 401
+    assert (await sign_in(owner)).status_code == 200
+    assert (await owner.get("/api/stats")).json()["error"]["code"] == "terms_required"
+    assert (await owner.post("/api/auth/accept-terms", json={"terms_version": "old"}, headers=CONSOLE)).status_code == 422
+    await owner.post("/api/auth/accept-terms", json={"terms_version": TERMS_VERSION}, headers=CONSOLE)
+    member, account_id, used_invite = await enroll(app, owner, "alice")
+    try:
+        assert (await member.get("/api/auth/session")).json()["role"] == "member"
+        for path in ("/api/admin/invites", f"/api/admin/accounts/{account_id}/disable"):
+            assert (await member.post(path, headers=CONSOLE)).status_code == 403
+        assert (await member.get("/api/admin/accounts")).status_code == 403
+        assert (await member.post("/api/auth/register", json={"invite": used_invite, "username": "another",
+            "password": PASSWORD, "terms_version": TERMS_VERSION}, headers=CONSOLE)).status_code == 400
+        assert app.state.auth.accounts.con.execute("SELECT COUNT(*) FROM acceptances WHERE account_id=?", (account_id,)).fetchone()[0] == 1
+        assert (await member.post("/api/account/collector-key", headers={})).status_code == 403
+        archive = await member.get("/api/account/collector-download")
+        assert archive.status_code == 200
+        assert archive.headers["cache-control"] == "no-store"
+        with zipfile.ZipFile(io.BytesIO(archive.content)) as z:
+            assert "collector.key" not in z.namelist()
+            assert z.read("endpoint.txt").decode() == ORIGIN
+            assert b"--api-key-file collector.key" in z.read("start.ps1")
+    finally:
+        await member.aclose()
+
+
+async def test_two_workspaces_cannot_read_raw_search_export_or_stream_each_other(multi):
+    app, owner = multi
+    await accept_owner(owner)
+    alice, alice_id, _ = await enroll(app, owner, "alice")
+    bob, bob_id, _ = await enroll(app, owner, "bob")
+    try:
+        keys = [(await client.post("/api/account/collector-key", headers=CONSOLE)).json()["key"] for client in (alice, bob)]
+        raw_ids = []
+        for client, key, marker in zip((alice, bob), keys, ("ALICE-PRIVATE", "BOB-PRIVATE")):
+            payload = event_payload(xml_fixture().replace("LAB-LAPTOP", marker))
+            result = await client.post("/api/ingest", json={"lines": [json.dumps(payload)]},
+                headers={"Authorization": f"Bearer {key}", "Idempotency-Key": "same-key-different-workspace"})
+            assert result.status_code == 202
+            raw_ids.extend(result.json()["raw_ids"])
+        for c in app.state.workspaces.containers.values():
+            c.worker.drain()
+        assert (await owner.get("/api/stats")).json()["raw_total"] == 0
+        for client, own_id, other_id, marker, other in ((alice, raw_ids[0], raw_ids[1], "ALICE-PRIVATE", "BOB-PRIVATE"),
+                                                      (bob, raw_ids[1], raw_ids[0], "BOB-PRIVATE", "ALICE-PRIVATE")):
+            assert (await client.get(f"/api/raw/{own_id}")).status_code == 200
+            assert (await client.get(f"/api/raw/{other_id}")).status_code == 404
+            for path in ("/api/events", "/api/sources", "/api/incidents", "/api/quarantine", "/api/ledger/batches", "/api/delivery/status"):
+                result = await client.get(path)
+                assert result.status_code == 200, path
+                assert other not in result.text
+            assert marker in (await client.get("/api/events")).text
+            result = await client.post("/api/search", json={"question": "show recent events"}, headers=CONSOLE)
+            assert other not in result.text
+            result = await client.post("/api/export/parquet", json={}, headers=CONSOLE)
+            assert result.status_code == 200
+            assert (await client.get("/api/stats", headers={"X-Workspace-ID": "owner"})).json()["raw_total"] == 1
+        a, b = app.state.workspaces.get(alice_id), app.state.workspaces.get(bob_id)
+        assert a.cfg.data_dir != b.cfg.data_dir and a.bus is not b.bus
+        q, _ = a.bus.subscribe(None)
+        b.bus.publish("test", {"secret": "bob"})
+        assert q.empty()
+        a.bus.unsubscribe(q)
+        assert a.keys != b.keys
+        assert (await alice.get("/api/events", headers={"Authorization": f"Bearer {keys[0]}"})).status_code == 403
+    finally:
+        await alice.aclose(); await bob.aclose()
+
+
+async def test_rotation_disable_and_revocation_close_sessions_and_stream(multi):
+    app, owner = multi
+    await accept_owner(owner)
+    member, account_id, _ = await enroll(app, owner, "alice")
+    try:
+        old = (await member.post("/api/account/collector-key", headers=CONSOLE)).json()["key"]
+        new = (await member.post("/api/account/collector-key", headers=CONSOLE)).json()["key"]
+        assert not app.state.auth.collector(f"Bearer {old}")
+        assert app.state.auth.collector(f"Bearer {new}")
+        c = app.state.workspaces.get(account_id)
+        request = Request({"type": "http", "method": "GET", "path": "/api/stream", "app": app,
+            "headers": [(b"cookie", f"{COOKIE}={member.cookies[COOKIE]}".encode())]})
+        response = await stream(request, c)
+        iterator = response.body_iterator
+        assert "retry:" in await anext(iterator)
+        assert (await owner.post(f"/api/admin/accounts/{account_id}/disable", headers=CONSOLE)).status_code == 200
+        c.bus.publish("test", {"after": "disable"})
+        with pytest.raises(StopAsyncIteration):
+            await asyncio.wait_for(anext(iterator), 2)
+        assert (await member.get("/api/stats")).status_code == 401
+        assert (await member.get("/api/health", headers={"Authorization": f"Bearer {new}"})).status_code == 401
+        assert (await owner.post("/api/admin/accounts/owner/disable", headers=CONSOLE)).status_code == 409
+    finally:
+        await member.aclose()
+
+
+def test_account_persistence_bootstrap_does_not_restore_rotated_key(multi_cfg):
+    auth = Auth(multi_cfg)
+    auth.accounts.accept("owner", TERMS_VERSION)
+    invite = auth.accounts.invite()["token"]
+    account_id = auth.accounts.register(invite, "alice", PASSWORD, TERMS_VERSION)
+    key = auth.accounts.rotate_key(account_id)
+    owner_key = auth.accounts.rotate_key("owner")
+    auth.accounts.close()
+    auth = Auth(multi_cfg)
+    try:
+        assert auth.session(auth.login("alice", PASSWORD))
+        assert auth.collector(f"Bearer {key}")
+        assert auth.collector(f"Bearer {owner_key}")
+        assert not auth.collector(f"Bearer {KEY}")
+        assert auth.accounts.by_id(account_id)["terms_version"] == TERMS_VERSION
+    finally:
+        auth.accounts.close()
+
+
+async def test_public_signup_requires_terms_and_enforces_capacity_and_throttle(multi):
+    app, client = multi
+    store = app.state.auth.accounts
+    store.public_signup = True
+    assert (await client.get("/api/auth/session")).json()["public_signup"] is True
+    body = {"username": "public-user", "password": PASSWORD, "terms_version": TERMS_VERSION}
+    assert (await client.post("/api/auth/register", json=body)).status_code == 403
+    assert (await client.post("/api/auth/register", json={**body, "terms_version": ""}, headers=CONSOLE)).status_code == 422
+    response = await client.post("/api/auth/register", json=body, headers=CONSOLE)
+    assert response.status_code == 201
+    assert store.by_id(response.json()["account_id"])["role"] == "member"
+    assert (await client.post("/api/auth/register", json={**body, "username": "PUBLIC-USER"}, headers=CONSOLE)).status_code == 409
+    store.limit = 2
+    assert (await client.post("/api/auth/register", json={**body, "username": "overflow"}, headers=CONSOLE)).status_code == 409
+    await client.post("/api/auth/register", json=body, headers=CONSOLE)
+    assert (await client.post("/api/auth/register", json=body, headers=CONSOLE)).status_code == 429
+
+
+async def test_invalid_expired_revoked_invites_limits_and_quota(multi):
+    app, owner = multi
+    await accept_owner(owner)
+    store = app.state.auth.accounts
+    for mode in ("expired", "revoked"):
+        inv = store.invite()
+        with store.con:
+            store.con.execute("UPDATE invites SET expires_at=0 WHERE token_hash=?" if mode == "expired" else
+                              "UPDATE invites SET revoked=1 WHERE token_hash=?", (digest(inv["token"]),))
+        response = await owner.post("/api/auth/register", json={"invite": inv["token"], "username": "tester", "password": PASSWORD, "terms_version": TERMS_VERSION}, headers=CONSOLE)
+        assert response.status_code == 400
+    member, account_id, _ = await enroll(app, owner, "tester")
+    try:
+        c = app.state.workspaces.get(account_id)
+        c.cfg = replace(c.cfg, workspace_raw_limit=5)
+        headers = {**CONSOLE, "Idempotency-Key": "quota-fixture"}
+        assert (await member.post("/api/ingest", json={"lines": ["12345"]}, headers=headers)).status_code == 202
+        assert (await member.post("/api/ingest", json={"lines": ["12345"]}, headers=headers)).status_code == 202
+        assert (await member.post("/api/ingest", json={"lines": ["x"]}, headers=CONSOLE)).status_code == 413
+        assert (await member.post("/api/auth/register", content=b"x" * 8193, headers=CONSOLE)).status_code == 413
+        store.limit = 2
+        assert (await owner.post("/api/admin/invites", headers=CONSOLE)).status_code == 409
+    finally:
+        await member.aclose()

@@ -1,4 +1,4 @@
-import { Activity, Gauge, Network, Search, Send, ShieldCheck, Siren, type LucideIcon } from 'lucide-react';
+import { Activity, Gauge, Network, Search, Send, ShieldCheck, Siren, UserRound, type LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router';
 import { cn } from '@/lib/utils';
 import { useIncidentStore, useIntegrityStore, useReplayStore } from '@/state';
@@ -17,6 +17,7 @@ export function NavRail() {
     { to: '/integrity', label: 'Integrity', Icon: ShieldCheck, badge: verdict && verdict !== 'verified' ? '✗' : null },
     { to: '/sources', label: 'Sources & parsers', Icon: Network, badge: quarantined || null },
     { to: '/delivery', label: 'Delivery', Icon: Send },
+    { to: '/account', label: 'Account', Icon: UserRound },
   ];
   return (
     <nav aria-label="Main" className="flex w-[112px] shrink-0 flex-col bg-ink py-3">

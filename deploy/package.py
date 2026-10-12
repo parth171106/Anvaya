@@ -4,7 +4,7 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 INCLUDE = ("backend/app", "backend/Dockerfile", "backend/requirements.lock", "backend/pyproject.toml",
-           "generator", "frontend", "deploy/Caddyfile", "docker-compose.deploy.yml", ".dockerignore")
+           "generator", "collectors", "frontend", "deploy/Caddyfile", "docker-compose.deploy.yml", ".dockerignore")
 EXCLUDE = {"node_modules", "dist", "data", "secrets", ".git", ".npm-cache", "__pycache__", ".pytest_cache",
            ".ruff_cache", "test-results", "playwright-report"}
 

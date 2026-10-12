@@ -14,6 +14,7 @@ const Search = lazy(() => import('@/features/search/Search'));
 const Integrity = lazy(() => import('@/features/integrity/Integrity'));
 const Sources = lazy(() => import('@/features/sources/Sources'));
 const Delivery = lazy(() => import('@/features/delivery/Delivery'));
+const Account = lazy(() => import('@/features/account/Account'));
 
 /** Route-level fallbacks are skeletons shaped like the screen, never spinners (UI_UX_BRIEF.md §3.1). */
 const skeletons = {
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
       { path: '/integrity', element: page(Integrity, skeletons.rows) },
       { path: '/sources', element: page(Sources, skeletons.rows) },
       { path: '/delivery', element: page(Delivery, skeletons.counters) },
+      { path: '/account', element: page(Account, skeletons.rows) },
       { path: '*', element: <NotFound /> },
     ],
   },

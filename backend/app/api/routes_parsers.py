@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app.aiparser.drafts import DraftError
@@ -51,8 +51,10 @@ class ApproveReq(BaseModel):
 
 
 @router.post("/parsers/drafts/{draft_id}/approve", response_model=Approved)
-async def approve(draft_id: str, req: ApproveReq, c: C):
-    return drafts_call(c.drafts.approve, draft_id, req.approved_by)
+async def approve(request: Request, draft_id: str, req: ApproveReq, c: C):
+    principal = getattr(request.state, "principal", None)
+    actor = principal["username"] if principal else req.approved_by
+    return drafts_call(c.drafts.approve, draft_id, actor)
 
 
 class RejectReq(BaseModel):

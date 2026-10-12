@@ -1,0 +1,33 @@
+import os
+
+from fastapi import APIRouter
+
+from app.accounts import TERMS_VERSION
+
+router = APIRouter()
+
+
+@router.get("/api/legal")
+async def legal():
+    return {
+        "version": TERMS_VERSION,
+        "operator": os.getenv("ANVAYA_OPERATOR_NAME", "ANVAYA project team"),
+        "contact": os.getenv("ANVAYA_SUPPORT_CONTACT", "anvaya-sih@proton.me"),
+        "terms": [
+            {"title": "About this pilot", "text": "ANVAYA is an educational log-analysis project offered for evaluation. It is not a managed security service, emergency service, backup service or certified compliance product. Use it only if you are at least 18 and can agree to these terms; otherwise do not create an account."},
+            {"title": "Authorized use", "text": "Upload only logs from systems you own or are expressly authorized to monitor. Obtain required permissions and provide notices to people whose information appears in those logs. Do not use ANVAYA for unauthorized surveillance, unlawful access, harassment, or attempts to disrupt the service or access another user's data. Do not intentionally upload passwords, tokens, payment details or other unnecessary sensitive information."},
+            {"title": "Your account and data", "text": "Keep your password, invitation and collector key private. You retain your rights in your logs and permit the operator to store and process them to provide and maintain this service. Accounts have separate workspaces, but the server operator can access hosted data for support, maintenance and lawful obligations. Contact the operator promptly if you suspect misuse of your account."},
+            {"title": "Accuracy and availability", "text": "Parsing, alerts, searches and summaries can be incomplete or wrong. Cryptographic checks detect certain changes to stored records; they do not establish that the original event was truthful, that every event was collected, or that a system is secure. Witness copies run on this same server and are not independent authorities. Verify findings before acting, keep your own backups and security controls, and do not rely on this pilot for safety-critical decisions."},
+            {"title": "Service limits and suspension", "text": "This small, shared pilot has account and storage limits and may be unavailable, changed or discontinued. The operator may suspend access for misuse or operational reasons. Suspension stops sign-in and collector access but does not itself delete stored data. Ask the operator about export or deletion before relying on long-term retention."},
+            {"title": "Warranty and liability", "text": "To the extent permitted by applicable law, the pilot is provided as available without warranties of accuracy, availability or fitness for a particular purpose. To that same extent, the operator disclaims liability for indirect or consequential loss arising from use of the pilot, including loss from missed alerts, interruptions or inaccurate output. Nothing here excludes liability that cannot legally be excluded, removes mandatory consumer or privacy rights, prevents a lawful complaint, or excuses unlawful conduct. These terms do not promise immunity from liability."},
+            {"title": "Acceptance and changes", "text": "Creating an account requires an affirmative acceptance of these Terms and an acknowledgement of the Privacy Notice. The service records the document version and acceptance time. Material document changes require a new acknowledgement before using the console. Contact the operator with questions or to request account closure."},
+        ],
+        "privacy": [
+            {"title": "What is stored", "text": "The service stores your username, salted password hash, collector-key hash, account status and the terms version and time you accepted. It also stores uploaded raw logs, normalized events, source metadata, alerts, integrity records and any exports you create. Windows sign-in logs can contain usernames, device and domain names, network addresses, timestamps and full event XML. Connection and operational logs may also include IP addresses and request paths."},
+            {"title": "Why and where", "text": "Data is processed to authenticate users, receive and analyze logs, show results, check integrity, operate the service and investigate faults or misuse. This deployment is hosted on the operator's AWS server. Data is transmitted over HTTPS. Workspace separation is access control, not end-to-end encryption; the operator and hosting provider may have infrastructure-level access. Do not upload information you cannot authorize the operator to host."},
+            {"title": "Who can see it", "text": "Other regular accounts cannot browse your workspace through the application. The operator can access server storage for administration and support, and may disclose information when required by law. The application does not sell logs or embed advertising trackers. The current cloud configuration uses built-in search templates; no external AI service receives your uploaded logs through that configuration."},
+            {"title": "Retention and deletion", "text": "This pilot has no automatic age-based log deletion. Account records, logs, integrity copies and generated exports remain until the operator removes them or the deployment is retired. Storage limits stop additional ingestion rather than deleting old records. Contact the operator to request access, correction, an export or deletion; include your username, not your password or key. Any server backups the operator makes may persist until separately removed. The operator should explain any legally required retention before refusing a deletion request."},
+            {"title": "Cookies and your choices", "text": "A strictly necessary, HttpOnly session cookie keeps you signed in for up to eight hours. There are no advertising cookies in this application. Sign out to revoke the current session. Stop the collector window or rotate your collector key to stop that key uploading more logs. Stopping collection does not delete logs already stored. You can ask the operator to close your account and remove its data."},
+            {"title": "Questions and incidents", "text": "Use the operator contact shown on this page for privacy requests, suspected misuse or a security issue. Avoid sending raw sensitive logs by email; describe the issue and request a suitable way to provide details."},
+        ],
+    }

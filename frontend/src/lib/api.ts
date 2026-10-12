@@ -7,6 +7,17 @@ import type {
 
 const BASE = '/api';
 
+export interface Session {
+  enabled: boolean; authenticated: boolean; username: string | null;
+  multi_user?: boolean; role?: string | null; account_id?: string | null;
+  public_signup?: boolean;
+  terms_version?: string; terms_accepted?: boolean;
+}
+export interface LegalNotice {
+  version: string; operator: string; contact: string;
+  terms: { title: string; text: string }[]; privacy: { title: string; text: string }[];
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public detail: Record<string, unknown> = {}) {
     super(message);
@@ -41,9 +52,21 @@ const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, b
 
 export const api = {
   auth: {
-    session: () => get<{ enabled: boolean; authenticated: boolean; username: string | null }>('/auth/session'),
+    session: () => get<Session>('/auth/session'),
     login: (username: string, password: string) => post<{ ok: boolean }>('/auth/login', { username, password }),
     logout: () => post<{ ok: boolean }>('/auth/logout'),
+    register: (invite: string, username: string, password: string, terms_version: string) =>
+      post<{ ok: boolean }>('/auth/register', { invite, username, password, terms_version }),
+    acceptTerms: (terms_version: string) => post<{ ok: boolean }>('/auth/accept-terms', { terms_version }),
+  },
+  legal: () => get<LegalNotice>('/legal'),
+  account: {
+    profile: () => get<{ username: string; role: string; account_id: string; has_collector_key: boolean; terms_version: string; accepted_at: number; origin: string; raw_limit_bytes: number }>('/account'),
+    rotateKey: () => post<{ key: string }>('/account/collector-key'),
+    list: () => get<{ items: { id: string; username: string; role: string; disabled: number }[]; invitations: { id: string; expires_at: number }[]; limit: number }>('/admin/accounts'),
+    invite: () => post<{ url: string; expires_at: number }>('/admin/invites'),
+    revoke: (id: string) => post<{ ok: boolean }>(`/admin/invites/${id}/revoke`),
+    disable: (id: string) => post<{ ok: boolean }>(`/admin/accounts/${id}/disable`),
   },
   health: () => get<Health>('/health'),
   stats: () => get<Stats>('/stats'),

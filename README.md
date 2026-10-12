@@ -26,7 +26,7 @@ continue to run the synthetic demonstration.
 
 For a single-server online deployment with administrator sign-in, collector API keys and
 HTTPS, see [Deployment guide](docs/DEPLOYMENT.md) and `docker-compose.deploy.yml`.
-The deployment package still needs Docker/cloud validation on the selected host.
+The deployment has been validated on an Ubuntu 24.04 EC2 VM; see the guide for setup and limits.
 
 Prerequisites: Docker with the Compose plugin; for local development also Python 3.11+ and Node.js LTS.
 

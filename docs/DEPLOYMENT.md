@@ -1,6 +1,6 @@
 # Deploy ANVAYA on one cloud VM
 
-This is a small, single-administrator college deployment. It keeps FastAPI, SQLite,
+This is a small college deployment with an owner and private user accounts. It keeps FastAPI, SQLite,
 the raw vault and local witnesses on one persistent Linux VM. The Windows collector
 runs on your Windows computer and forwards logs to the VM over authenticated HTTPS.
 The cloud server cannot read your computer's Windows Security log by itself.
@@ -13,7 +13,8 @@ in credits and can earn more; the Free plan ends after six months or when its cr
 are exhausted. Keep the account on the Free plan and export your data before it ends.
 Check the account's actual eligibility, available services and credit balance before
 launching the VM. See the [official AWS Free Tier FAQ](https://aws.amazon.com/free/free-tier-faqs/).
-No AWS account, VM or paid resource has been created by this project setup.
+The application does not create cloud resources automatically. Provisioning and account
+plan selection are separate from installing the application.
 
 A VM fits the current architecture: ingestion, normalization and sealing run in one
 long-lived process, and SQLite, log segments and signing keys need persistent storage.
@@ -36,13 +37,13 @@ capacity still need measuring on the selected VM.
 
 ## What is included
 
-- One administrator account, PBKDF2-SHA256 password hashes, and a private collector key
+- One owner plus private user accounts, PBKDF2-SHA256 password hashes, and per-account collector keys
   stored as a SHA-256 hash on the server. No default login or shared preset password.
 - Random server-side sessions lasting eight hours, HttpOnly cookies, SameSite=Strict,
   Secure cookies on HTTPS, sign-out, and a global limit of ten login attempts per minute.
 - Same-origin checks and a custom header for browser writes. Collector tokens cannot
   read events, download raw logs, export data, change parsers or access the event stream.
-- Existing SSE and raw-log links work through the administrator session. Expired or
+- Existing SSE and raw-log links are scoped to each user's workspace. Expired or
   revoked sessions stop receiving stream data. A server restart requires signing in again.
 - Authenticated deployments disable the unauthenticated UDP listener. HTTPS ingestion
   is the supported remote path. Only ports 80 and 443 are published by the deployment stack.
@@ -72,9 +73,12 @@ files. It creates:
 
 The secrets directory is excluded from Git and the backend Docker build context. Restrict
 access to these files to your account (on Windows, check the folder's Security permissions).
-There is no web password-reset flow. To rotate credentials, create files in a new private
-directory, replace the VM's auth file, recreate the API container, and update the collector
-key file. Existing sessions end when the API restarts.
+There is no automatic password-reset flow. In the deployed multi-user mode, users
+replace their collector key from Account and update their local key file. Password
+recovery requires the operator to verify the request and update that account's salted
+hash in the registry during maintenance. The auth file is only the initial bootstrap;
+replacing it does not rotate credentials after migration. Existing sessions end when
+the API restarts.
 
 ## 2. Prepare the Linux VM
 
@@ -153,10 +157,89 @@ This is a small deployment, not a multi-user or production security service.
 ## Validation status
 
 Backend authentication, collector restrictions, restart/retry behavior and the local
-browser login flow are tested. Container builds, certificate issuance, VM sizing and
-cloud networking must still be checked on a Docker-enabled machine and the chosen host.
-Docker was unavailable on the development machine during this phase; no cloud resources
-were created and no real logs were uploaded to a third party.
+browser login flow are tested. On 12 October 2026, the GitHub revision was built and
+started on an Ubuntu 24.04 EC2 VM with Docker Compose. Public HTTPS certificate validation,
+readiness, administrator login/logout, anonymous request rejection and collector access
+restrictions passed. This verifies a running small deployment, not a load-capacity claim.
+The initial cloud database is empty; real collection requires running the Windows collector.
+
+For the prepared Windows checkout, `collect-cloud.ps1` uses the saved hostname in
+`data/cloud-endpoint.txt`, the private `secrets/collector.key`, and a separate cloud
+checkpoint. Run it from Administrator PowerShell. On another checkout, provide
+`-Api https://your-hostname` explicitly. Do not reuse the cloud checkpoint for a different server.
 
 The CSRF approach follows the
 [OWASP guidance on custom request headers and same-origin checks](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
+
+## Public signup and private workspaces
+
+The deployment profile enables `ANVAYA_MULTI_USER=1` and `ANVAYA_PUBLIC_SIGNUP=1`.
+Share `/join`: people choose a username and password, explicitly accept the Terms
+and acknowledge the Privacy Notice, then receive a private workspace. Signup uses
+usernames; email verification and automatic password recovery are not implemented.
+The default capacity is ten accounts in total, including the owner and disabled
+accounts. Signup is globally throttled to five attempts per minute and login to ten.
+This is a bounded college pilot, not a large public hosting service.
+
+The owner's existing username, password hash, collector-key hash and data directory
+are preserved during the first upgrade. Account credentials are then stored in
+`/data/accounts.db`; editing the bootstrap `auth.json` does not rotate existing
+credentials afterward. Sessions expire on restart. The owner must acknowledge the
+terms on their next console login; their existing collector continues to work.
+
+Other users get server-generated workspace IDs and separate SQLite databases,
+vaults, signing keys, witness stores, parser packs, event buses, exports and workers
+under `/data/workspaces/<id>`. Request parameters cannot select another workspace.
+The owner can list usernames, issue/revoke optional invitations and disable accounts,
+but the console does not grant the owner cross-workspace log browsing. The server
+operator still has infrastructure-level access: this is not end-to-end encryption.
+Run one API worker; account enrollment and SQLite operations are coordinated in that
+one process. Do not add multiple API replicas without redesigning this model.
+
+From **Account**, each user downloads the collector ZIP and generates/downloads
+`collector.key`. The ZIP contains only source and server URL, not credentials or
+logs. Key replacement invalidates the previous key immediately. Each computer and
+account needs its own extracted collector folder/checkpoint. Windows collection
+requires Administrator PowerShell and begins with the previous 15 minutes of 4624/
+4625 events. Only collect data that the user is authorized to share.
+
+Limits: 100 MiB or 50,000 raw records per workspace; 500 records per request; 256 KiB
+per record; five stored Parquet exports. These bound application use but are not a
+complete disk quota: normalized data, audit records, indexes and logs also use disk.
+Monitor VM disk space. Disabling an account revokes sessions and collector access,
+but retains its data and does not free an account slot automatically.
+
+## Terms, privacy and operator responsibilities
+
+Public pages `/terms` and `/privacy` are available before signup. They are backed by
+`backend/app/api/routes_legal.py`; `TERMS_VERSION` in `backend/app/accounts.py` controls
+which version is acknowledged. Bump it after material changes and retain the older
+text in your release archive. Acceptance records store account ID, version and UTC
+time. A checkbox and record of acceptance are evidence, not a guarantee that every
+clause is enforceable.
+
+Operator: **ANVAYA project team**. Support/privacy: **anvaya-sih@proton.me**. Override
+these with `ANVAYA_OPERATOR_NAME` and `ANVAYA_SUPPORT_CONTACT` in `.env.deploy` as
+needed. Keep the contact monitored. These plain-language draft terms explain the
+educational scope, authorized use, possible errors/outages, warranty limitations and
+non-excludable rights. They do not confer immunity from complaints or liability.
+Have a qualified lawyer review them before relying on them as legal protection.
+References: [Indian Contract Act](https://www.indiacode.nic.in/handle/123456789/2187)
+and [MeitY data protection framework](https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa?pageTitle=Digital-Personal-Data-Protection-Rules-2025686cadad39.pdf).
+
+There is no automatic time-based deletion. Respond to privacy/access/deletion
+requests through the support contact. Verify the requester's authority without
+asking for their password or collector key. For an approved deletion, stop the API,
+identify the account's exact server-generated workspace directory, remove that
+account's raw data, database, keys, witness copies, packs, outbox and exports, and
+remove its registry/acceptance records and any associated invitations. Account
+`owner` uses the original root data directory and requires special care: never
+recursively remove `/data`, because it contains other users and the account registry.
+Remove relevant backups separately, or explain any required retention to the user.
+Restart the API and verify that both login and collector access fail. Deletion must
+be explicitly authorized and checked by the operator; the application does not
+currently provide an automated deletion or password-reset workflow.
+
+To roll back this upgrade, retain a private, consistent snapshot of the Docker data
+volume taken with the API stopped, plus the previous API/UI images. Never put a
+snapshot, account database, logs, passwords or collector keys on GitHub.

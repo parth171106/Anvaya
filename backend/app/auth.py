@@ -1,4 +1,4 @@
-"""One administrator, scoped collector key, and short-lived server-side sessions."""
+"""Scoped collector keys and short-lived sessions; optional invite-only private workspaces."""
 import argparse
 import getpass
 import hashlib
@@ -43,7 +43,12 @@ class Auth:
         self.enabled = cfg.auth_file is not None
         self.origin = cfg.public_origin
         self.sessions = {}
+        self.session_users = {}
         self.attempts = deque()
+        self.signup_attempts = deque()
+        self.accounts = None
+        if cfg.multi_user and (not self.enabled or cfg.demo_mode):
+            raise ValueError("Multi-user mode requires authentication and live mode")
         if cfg.auth_required and not self.enabled:
             raise ValueError("ANVAYA_AUTH_REQUIRED=1 requires ANVAYA_AUTH_FILE")
         if not self.enabled:
@@ -61,14 +66,34 @@ class Auth:
         for field, size in (("salt", 16), ("password_hash", 32), ("collector_key_hash", 32)):
             if len(bytes.fromhex(self.credentials[field])) != size:
                 raise ValueError(f"Invalid {field} in auth file")
+        if cfg.multi_user:
+            from app.accounts import Accounts
+            self.accounts = Accounts(cfg, self.credentials)
 
     def session(self, token: str) -> bool:
         expires = self.sessions.get(digest(token), 0)
-        return expires > time.time()
+        return expires > time.time() and (not self.accounts or self.accounts.by_id(self.session_users.get(digest(token), "")) is not None)
+
+    def principal(self, token: str):
+        if not self.session(token):
+            return None
+        if self.accounts:
+            return dict(self.accounts.by_id(self.session_users[digest(token)]))
+        return {"id": "owner", "username": self.credentials["username"], "role": "admin"}
+
+    def collector_principal(self, authorization: str):
+        scheme, _, key = authorization.partition(" ")
+        if scheme.lower() != "bearer":
+            return None
+        if self.accounts:
+            row = self.accounts.by_key(digest(key))
+            return dict(row) if row else None
+        if hmac.compare_digest(digest(key), self.credentials["collector_key_hash"]):
+            return {"id": "owner", "username": self.credentials["username"], "role": "admin"}
+        return None
 
     def collector(self, authorization: str) -> bool:
-        scheme, _, key = authorization.partition(" ")
-        return scheme.lower() == "bearer" and hmac.compare_digest(digest(key), self.credentials["collector_key_hash"])
+        return self.collector_principal(authorization) is not None
 
     def login(self, username: str, password: str) -> str:
         now = time.time()
@@ -76,16 +101,20 @@ class Auth:
             self.attempts.popleft()
         if len(self.attempts) >= 10:
             raise ApiError(429, "login_rate_limited", "Too many sign-in attempts. Wait one minute and try again.")
-        self.attempts.append(now)  # global limit is deliberate for this single-admin server
-        valid_password = hmac.compare_digest(password_hash(password, self.credentials["salt"]),
-                                             self.credentials["password_hash"])
-        if not (hmac.compare_digest(username.encode(), self.credentials["username"].encode()) and valid_password):
+        self.attempts.append(now)  # bounded global work prevents password hashing from exhausting this small VM
+        account = self.accounts.by_name(username) if self.accounts else self.credentials
+        compare = account or self.credentials
+        valid_password = hmac.compare_digest(password_hash(password, compare["salt"]), compare["password_hash"])
+        valid_name = account is not None if self.accounts else hmac.compare_digest(username.encode(), self.credentials["username"].encode())
+        if not (valid_name and valid_password):
             raise ApiError(401, "invalid_credentials", "Incorrect username or password")
         self.sessions = {key: expiry for key, expiry in self.sessions.items() if expiry > now}
+        self.session_users = {key: user for key, user in self.session_users.items() if key in self.sessions}
         if len(self.sessions) >= 128:
             del self.sessions[next(iter(self.sessions))]
         token = secrets.token_urlsafe(32)
         self.sessions[digest(token)] = now + SESSION_SECONDS
+        self.session_users[digest(token)] = account["id"] if self.accounts else "owner"
         return token
 
 
@@ -102,22 +131,31 @@ class AuthMiddleware:
         protected = path.startswith("/api/") or path in ("/api", "/docs", "/redoc", "/openapi.json")
         if not protected:
             return await self.app(scope, receive, send)
-        public = (method, path) in (("GET", "/api/ready"), ("GET", "/api/auth/session"), ("POST", "/api/auth/login"))
+        public = (method, path) in (("GET", "/api/ready"), ("GET", "/api/auth/session"),
+                                   ("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("GET", "/api/legal"))
+        principal = None
         authorization = request.headers.get("authorization", "")
         if authorization:
             # A collector token never grants dashboard, raw-log, export or administrative access.
-            if not self.auth.collector(authorization):
+            principal = self.auth.collector_principal(authorization)
+            if not principal:
                 return await envelope(401, "unauthorized", "Invalid collector credentials")(scope, receive, send)
             if (method, path) not in (("POST", "/api/ingest"), ("GET", "/api/health")):
                 return await envelope(403, "forbidden", "Collector key only permits ingestion and health checks")(scope, receive, send)
         else:
-            if not public and not self.auth.session(request.cookies.get(COOKIE, "")):
+            principal = self.auth.principal(request.cookies.get(COOKIE, ""))
+            if not public and not principal:
                 return await envelope(401, "unauthorized", "Sign in to continue")(scope, receive, send)
+            if self.auth.accounts and principal and not public and path not in ("/api/auth/logout", "/api/auth/accept-terms"):
+                from app.accounts import TERMS_VERSION
+                if principal.get("terms_version") != TERMS_VERSION:
+                    return await envelope(403, "terms_required", "Review and accept the current Terms and Privacy Notice")(scope, receive, send)
             if method not in ("GET", "HEAD", "OPTIONS"):
                 # Custom header + exact Origin check; protected deployments do not allow cross-origin CORS.
                 if (request.headers.get("x-anvaya-request") != "console"
                         or request.headers.get("origin") != self.auth.origin):
                     return await envelope(403, "forbidden", "Same-origin console request required")(scope, receive, send)
+        scope.setdefault("state", {})["principal"] = principal
 
         async def no_cache(message):
             if message["type"] == "http.response.start":
@@ -130,9 +168,17 @@ class AuthMiddleware:
 @router.get("/session")
 async def session(request: Request):
     auth = request.app.state.auth
-    authenticated = auth.enabled and auth.session(request.cookies.get(COOKIE, ""))
-    return {"enabled": auth.enabled, "authenticated": authenticated,
-            "username": auth.credentials["username"] if authenticated else None}
+    principal = auth.principal(request.cookies.get(COOKIE, "")) if auth.enabled else None
+    result = {"enabled": auth.enabled, "authenticated": bool(principal),
+              "username": principal["username"] if principal else None}
+    if auth.accounts:
+        from app.accounts import TERMS_VERSION
+        result.update(multi_user=True, role=principal["role"] if principal else None,
+                      public_signup=auth.accounts.public_signup,
+                      account_id=principal["id"] if principal else None,
+                      terms_version=TERMS_VERSION,
+                      terms_accepted=bool(principal and principal.get("terms_version") == TERMS_VERSION))
+    return result
 
 
 @router.post("/login")
