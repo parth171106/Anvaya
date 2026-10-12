@@ -124,8 +124,7 @@ export default function Sources() {
       setDrafts((m) => ({ ...m, [groupId]: d.draft_id }));
       setDialog({ draftId: d.draft_id, shape: shapeOf(groupId) });
     },
-    onError: (e) => setDraftError(e instanceof ApiError && e.status === 503
-      ? 'No cached draft found. Run `make prebake` before recording.' : e instanceof ApiError ? e.message : "Couldn't draft a parser."),
+    onError: (e) => setDraftError(e instanceof ApiError ? e.message : "Couldn't draft a parser."),
   });
   const shapeOf = (groupId: string) => quarantine.data?.groups.find((g) => g.group_id === groupId)?.shape_signature ?? '';
   const onDraft = (groupId: string) => {

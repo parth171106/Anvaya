@@ -21,13 +21,14 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
   try {
     res = await fetch(BASE + path + qs, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: body === undefined ? undefined : { 'Content-Type': 'application/json', 'X-Anvaya-Request': 'console' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'network', 'Network error');
   }
   if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/login') window.dispatchEvent(new Event('anvaya:unauthorized'));
     const err = await res.json().catch(() => null);
     throw new ApiError(res.status, err?.error?.code ?? 'http_error', err?.error?.message ?? res.statusText,
       err?.error?.detail ?? {});
@@ -39,6 +40,11 @@ const get = <T>(path: string, params?: Record<string, unknown>) => request<T>('G
 const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, body);
 
 export const api = {
+  auth: {
+    session: () => get<{ enabled: boolean; authenticated: boolean; username: string | null }>('/auth/session'),
+    login: (username: string, password: string) => post<{ ok: boolean }>('/auth/login', { username, password }),
+    logout: () => post<{ ok: boolean }>('/auth/logout'),
+  },
   health: () => get<Health>('/health'),
   stats: () => get<Stats>('/stats'),
   ingest: (lines: string[]) => post<{ accepted: number; raw_ids: string[]; flagged: number }>('/ingest', { lines }),

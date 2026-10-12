@@ -15,13 +15,14 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { queryClient } from '@/lib/stream';
 import { router } from './routes';
+import { AuthGate } from '@/components/shell/AuthGate';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
         <TooltipProvider delayDuration={300}>
-          <RouterProvider router={router} />
+          <AuthGate><RouterProvider router={router} /></AuthGate>
           <Toaster />
         </TooltipProvider>
       </MotionConfig>

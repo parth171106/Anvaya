@@ -13,7 +13,7 @@ export const STATEMENT = "ANVAYA's tamper-evident retention supports CERT-In's 1
 
 function SiemForwarderCard({ status }: { status: DeliveryStatus['siem'] }) {
   return (
-    <Panel title="SIEM forwarder · file sink (demo)" className="h-full">
+    <Panel title="SIEM output · local file" className="h-full">
       {status.forwarded === 0 ? (
         <EmptyState icon={Send} title="Nothing forwarded yet" body="Each normalized event is written as an RFC 5424 line with a JSON payload." className="py-6" />
       ) : (

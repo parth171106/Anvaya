@@ -12,6 +12,7 @@ from fastapi.responses import Response
 from app.api import (errors, routes_delivery, routes_demo, routes_events, routes_health, routes_incidents, routes_ledger,
                      routes_parsers, routes_search, routes_sources, routes_stream)
 from app.api.errors import not_found
+from app.auth import Auth, AuthMiddleware, router as auth_router
 from app.core import config
 from app.core.container import Container
 from app.ingest import http as ingest_http
@@ -73,32 +74,48 @@ def background_tasks(c: Container) -> list[asyncio.Task]:
 
 def create_app(cfg: config.Config | None = None, container_factory=Container) -> FastAPI:
     cfg = cfg or config.load()
+    auth = Auth(cfg)
     setup_logging()
 
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI):
         c = app.state.c = container_factory(cfg)
-        c.last_bench = load_last_bench()
-        udp = await start_udp(c.ingest, cfg.syslog_udp_port)
+        c.last_bench = load_last_bench() if cfg.demo_mode else None
+        try:
+            udp = None if auth.enabled else await start_udp(c.ingest, cfg.syslog_udp_port, cfg.syslog_bind_host)
+        except Exception:
+            c.close_stores()
+            raise
         tasks = background_tasks(c) + [asyncio.create_task(c.llm.warmup(), name="llm-warmup")]
         log.info("ANVAYA ready (demo_mode=%s, data=%s)", cfg.demo_mode, cfg.data_dir)
-        yield
-        for t in tasks:
-            t.cancel()
-        if cfg.demo_mode and c.demo.task:
-            c.demo.task.cancel()
-        await asyncio.gather(*tasks, *([c.demo.task] if cfg.demo_mode and c.demo.task else []), return_exceptions=True)
-        udp.close()
-        c.close_stores()
+        try:
+            yield
+        finally:
+            if udp is not None:
+                udp.close()
+            for t in tasks:
+                t.cancel()
+            if cfg.demo_mode and c.demo.task:
+                c.demo.task.cancel()
+            await asyncio.gather(*tasks, *([c.demo.task] if cfg.demo_mode and c.demo.task else []), return_exceptions=True)
+            c.close_stores()
 
     app = FastAPI(title="ANVAYA", version="1.0.0", lifespan=lifespan)
-    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8080", "http://localhost:5173"],
+    app.state.auth = auth
+    app.add_middleware(CORSMiddleware, allow_origins=[] if auth.enabled else ["http://localhost:8080", "http://localhost:5173"],
                        allow_methods=["*"], allow_headers=["*"])
+    app.add_middleware(AuthMiddleware, auth=auth)
     errors.install(app)
+    app.include_router(auth_router)
     app.include_router(ingest_http.router)
     for r in (routes_health, routes_events, routes_ledger, routes_sources, routes_parsers, routes_incidents,
               routes_search, routes_delivery, routes_demo, routes_stream):
         app.include_router(r.router)
+
+    @app.get("/api/ready")
+    async def ready():
+        app.state.c.repo.con.execute("SELECT 1").fetchone()
+        return {"status": "ok"}
 
     @app.get("/api/raw/{raw_id}")
     async def raw(raw_id: str):

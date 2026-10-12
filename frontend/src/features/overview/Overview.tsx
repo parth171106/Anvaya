@@ -121,7 +121,7 @@ function BenchLine({ bench }: { bench: Stats['last_bench'] }) {
   if (!bench) return null;
   return (
     <p className="text-body text-graphite">
-      Benchmark on this machine: {int(bench.eps)} events/s sustained · {bench.machine} · measured {dateIST(bench.measured_at)}
+      Recorded benchmark: {int(bench.eps)} events/s sustained · {bench.machine} · measured {dateIST(bench.measured_at)}
     </p>
   );
 }
@@ -160,6 +160,12 @@ export default function Overview() {
         <LiveActivityPanel stats={stats} />
       </div>
       {demoMode && <StartSimulationBar phase={phase} onStart={start} pending={startPending} speed={speed} />}
+      {!demoMode && stats && stats.raw_total === 0 && (
+        <Panel title="Ready for real logs">
+          <p className="text-body-lg">No records received yet. Start your Windows sign-in collector or connect a supported log source.</p>
+          <p className="mt-2 text-body text-graphite">Received records appear in Live Feed. Formats without a matching parser are preserved in Sources &amp; parsers → Quarantine.</p>
+        </Panel>
+      )}
       <BenchLine bench={stats?.last_bench ?? null} />
     </div>
   );

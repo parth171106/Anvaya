@@ -7,6 +7,7 @@ import { qk } from '@/lib/queryKeys';
 import type { ComponentStatus, Health } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useDemoStore, useStatsStore, useStreamStore } from '@/state';
+import { SignOut } from './AuthGate';
 
 type Tone = 'ok' | 'warn' | 'down' | 'neutral';
 const DOT: Record<Tone, string> = { ok: 'bg-st-live', warn: 'bg-st-warn', down: 'bg-st-down', neutral: 'bg-int-pending' };
@@ -110,9 +111,10 @@ export function TopBar() {
           <div className="hidden items-center gap-2 min-[1440px]:max-[1599px]:flex">
             {chips(health.data, health.isError).map((c) => <HealthChip key={c.label} {...c} />)}
           </div>
-          {demoMode && <SyntheticDataPill />}
+          {demoMode ? <SyntheticDataPill /> : health.data && <HealthChip label="Live-log pilot" tone="neutral" />}
           <ScenarioClock />
           <StreamDot />
+          <SignOut />
         </div>
       </div>
       <div className="flex h-10 items-center justify-end gap-2 overflow-hidden border-t border-rule px-8 min-[1440px]:max-[1599px]:hidden">
