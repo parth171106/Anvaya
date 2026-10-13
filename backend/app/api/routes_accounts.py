@@ -55,7 +55,8 @@ async def register(request: Request):
         raise ApiError(422, "validation_error", "Provide a username, password and accepted terms version") from None
     # Invalid invitations are rejected before costly password hashing.
     account_id = store.register(data.invite, data.username, data.password, data.terms_version)
-    return {"ok": True, "account_id": account_id}
+    return {"ok": True, "account_id": account_id,
+            "recovery_code": request.app.state.auth.recovery.issue_code(account_id)}
 
 
 class Acceptance(BaseModel):
@@ -75,7 +76,8 @@ async def profile(request: Request):
     return {"username": user["username"], "role": user["role"], "account_id": user["id"],
             "has_collector_key": bool(user["collector_key_hash"]), "terms_version": user["terms_version"],
             "accepted_at": user["accepted_at"], "origin": request.app.state.auth.origin,
-            "raw_limit_bytes": request.app.state.c.cfg.workspace_raw_limit}
+            "raw_limit_bytes": request.app.state.c.cfg.workspace_raw_limit,
+            **request.app.state.auth.recovery.profile(user['id'])}
 
 
 @router.post("/account/collector-key")

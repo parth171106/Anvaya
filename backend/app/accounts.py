@@ -6,7 +6,7 @@ import re
 
 from app.api.errors import ApiError
 
-TERMS_VERSION = "2026-10-12"
+TERMS_VERSION = "2026-10-13"
 
 
 class Accounts:

@@ -107,7 +107,10 @@ async def test_two_workspaces_cannot_read_raw_search_export_or_stream_each_other
                 assert other not in result.text
             assert marker in (await client.get("/api/events")).text
             result = await client.post("/api/search", json={"question": "show recent events"}, headers=CONSOLE)
+            assert result.status_code == 200 and result.json()["row_count"] == 1
             assert other not in result.text
+            suggestions = (await client.get("/api/search/suggestions")).json()["items"]
+            assert any(marker in q for q in suggestions) and all(other not in q for q in suggestions)
             result = await client.post("/api/export/parquet", json={}, headers=CONSOLE)
             assert result.status_code == 200
             assert (await client.get("/api/stats", headers={"X-Workspace-ID": "owner"})).json()["raw_total"] == 1

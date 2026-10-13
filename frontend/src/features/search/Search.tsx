@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Copy, Search as SearchIcon } from 'lucide-react';
-import { Link } from 'react-router';
 import { toast } from 'sonner';
 import { Bone, ErrorState, PageHeader, useDelayed } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,6 @@ import { qk } from '@/lib/queryKeys';
 import { SQL_COLOR, tokenizeSql } from '@/lib/sqlHighlight';
 import type { SearchResult } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useReplayStore } from '@/state';
 
 const MONO_COLS = new Set(['src_ip', 'dst_ip', 'src_port', 'dst_port', 'time']);
 
@@ -21,7 +19,7 @@ function SearchBox({ value, onChange, onSubmit, pending }: { value: string; onCh
     <form className="flex gap-3" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
       <label htmlFor="q" className="sr-only">Question</label>
       <input id="q" value={value} onChange={(e) => onChange(e.target.value)} autoComplete="off"
-        placeholder="Ask a question about your perimeter logs…"
+        placeholder="Try “Show recent events”, “Show SSH logs” or an IP address"
         className="h-14 flex-1 rounded-control border border-rule bg-surface px-4 text-body-lg text-ink placeholder:text-muted-foreground focus-visible:border-seal" />
       <Button type="submit" size="lg" className="h-14 px-8" disabled={pending || !value.trim()}>{pending ? 'Asking…' : 'Ask'}</Button>
     </form>
@@ -96,18 +94,17 @@ function ResultsTable({ columns, rows }: { columns: string[]; rows: (string | nu
 export default function Search() {
   const [question, setQuestion] = useState('');
   const sugg = useQuery({ queryKey: qk.suggestions, queryFn: api.search.suggestions });
-  const quarantined = useReplayStore((s) => s.quarantineTotal);
   const m = useMutation({ mutationFn: (q: string) => api.search.ask(q) });
   const showLoading = useDelayed(m.isPending);
   const suggestions = sugg.data?.items ?? [];
   const ask = (q: string) => { if (q.trim()) m.mutate(q.trim()); };
   const r = m.data;
   const err = m.error as ApiError | null;
-  const askedBr01 = !!r && /device\s*=\s*'br01'/.test(r.sql);
 
   return (
     <div>
       <PageHeader title="Ask the evidence" />
+      <p className="mb-4 text-body text-graphite">Search normalized logs in your private workspace. Start with a suggestion below. Built-in searches support recent events, devices, IP addresses, SSH logs and login results.</p>
       <SearchBox value={question} onChange={setQuestion} onSubmit={() => ask(question)} pending={m.isPending} />
       <SuggestedQuestions items={suggestions} disabled={m.isPending} emphasised={!r && !m.isPending}
         onPick={(q) => { setQuestion(q); ask(q); }} />
@@ -117,25 +114,24 @@ export default function Search() {
         ) : err ? (
           err.code === 'unanswerable' && !err.detail?.reason ? (
             <div className="rounded-panel border border-rule bg-surface p-5">
-              <p className="text-body-lg">I can answer questions about addresses, devices, failed logins and denied connections.</p>
+              <p className="text-body-lg">This wording is not supported by the built-in search. Try a suggestion below, “Show failed logins”, or an IP address.</p>
               <SuggestedQuestions items={suggestions} disabled={false} emphasised onPick={(q) => { setQuestion(q); ask(q); }} />
             </div>
           ) : (
             <ErrorState title={err.code === 'unanswerable' ? 'That question took too long.' : "Couldn't run that question."}
-              body={err.code === 'unanswerable' ? 'Try narrowing the time window.' : 'Check that the api container is running.'}
+              body={err.code === 'unanswerable' ? 'Try narrowing the time window.' : err.message}
               onRetry={() => ask(question)} code={err.code} />
           )
         ) : r ? (
           <div className="space-y-4">
             <SqlBlock r={r} />
-            <p className="text-body text-graphite tabular">{r.row_count} rows · {(r.took_ms / 1000).toFixed(1)} s</p>
+            <p className="text-body text-graphite tabular">{r.row_count} rows{r.row_count === 200 ? ' (display limit reached)' : ''} · {(r.took_ms / 1000).toFixed(1)} s</p>
             {r.row_count === 0 ? (
-              askedBr01 && quarantined > 0 ? (
-                <p className="text-body-lg">
-                  No normalized events from br01 yet. {quarantined} raw records from this source are waiting in quarantine.{' '}
-                  <Link to="/sources?tab=quarantine" className="font-medium text-seal underline">Open quarantine</Link>
-                </p>
-              ) : <p className="text-body-lg">No matching events.</p>
+              <div className="space-y-3">
+                <p className="text-body-lg">No matching normalized events for this query.</p>
+                <p className="text-body text-graphite">Time windows use the original event timestamp. Older imported logs may be outside the last hour. Quarantined records are not searchable here.</p>
+                <Button variant="outline" onClick={() => { setQuestion('Show recent events'); ask('Show recent events'); }}>Show latest stored events across all dates</Button>
+              </div>
             ) : (
               <ResultsTable columns={r.columns} rows={r.rows} />
             )}
@@ -143,7 +139,7 @@ export default function Search() {
         ) : (
           <p className="flex items-center gap-2 text-body text-graphite">
             <SearchIcon className="size-5" aria-hidden />
-            Answers come from normalized events only. Queries are read-only and run on this machine.
+            Answers come from normalized events only. Queries are read-only and run on the ANVAYA server. “Show recent events” returns the latest 200 stored events across all dates.
           </p>
         )}
       </div>

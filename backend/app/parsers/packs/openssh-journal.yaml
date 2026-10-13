@@ -1,0 +1,37 @@
+name: openssh-journal
+version: 1.0.0
+origin: builtin
+priority: 35
+vendor: OpenBSD
+product: OpenSSH
+device_type: Unknown
+format: openssh-journal
+source_timezone: UTC
+detect:
+  header: none
+  body_regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2}) \S+ sshd(?:-session)?\[\d+\]: (?:Accepted|Failed) '
+prefix:
+  regex: '^(?P<timestamp>\S+) (?P<host>\S+) (?P<process>sshd(?:-session)?)\[(?P<pid>\d+)\]: (?P<result>Accepted|Failed) '
+  fields:
+    timestamp: { to: time, transform: { timestamp: '%Y-%m-%dT%H:%M:%S%z' }, also: metadata.original_time }
+    host: { to: device.hostname, also: dst_endpoint.hostname }
+    pid: { to: unmapped.process_id }
+    process: { to: unmapped.process_name }
+    result: { to: status, transform: { enum: { Accepted: Success, Failed: Failure } } }
+rules:
+  - id: ssh-login-success
+    when: { result: Accepted }
+    regex: '^(?P<method>\S+) for (?P<user>\S+) from (?P<ip>\S+) port (?P<port>\d+) ssh2(?P<details>.*)$'
+    ocsf: { class_uid: 3002, activity: Logon, status: Success, severity: Informational }
+    map: &fields
+      method: { to: unmapped.authentication_method }
+      user: { to: user.name }
+      ip: { to: src_endpoint.ip, type: ip }
+      port: { to: src_endpoint.port, type: int }
+      details: { to: unmapped.ssh_details }
+  - id: ssh-login-failure
+    when: { result: Failed }
+    regex: '^(?P<method>\S+) for (?:invalid user )?(?P<user>\S+) from (?P<ip>\S+) port (?P<port>\d+) ssh2(?P<details>.*)$'
+    ocsf: { class_uid: 3002, activity: Logon, status: Failure, severity: Medium }
+    map: *fields
+required: [time, device.hostname, user.name, src_endpoint.ip, src_endpoint.port]

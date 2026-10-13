@@ -79,3 +79,48 @@ async def test_question_variants_and_unanswerable(s):
         await s.search.answer("tell me a joke")
     audit = s.repo.con.execute("SELECT COUNT(*) FROM audit_log WHERE action='search.ask'").fetchone()[0]
     assert audit == 2
+
+
+async def test_real_sources_case_status_and_old_imports(s):
+    from app.search.templates import workspace_suggestions
+    # Old imported SSH events must remain discoverable without a recent-time filter.
+    for result, user in [('Accepted', 'alice'), ('Failed', 'bob')]:
+        text = f"2026-09-01T08:21:32+00:00 Parth sshd[123]: {result} password for {user} from 198.51.100.40 port 22 ssh2"
+        s.ingest(text.encode(), 'http', '127.0.0.1')
+    s.worker.drain()
+    assert (await s.search.answer('Show events from parth'))['row_count'] == 2
+    assert (await s.search.answer('Show events from PARTH'))['row_count'] == 2
+    result = await s.search.answer('show ssh logs')
+    assert result['row_count'] == 2 and 'status' in result['columns']
+    assert (await s.search.answer('Show successful SSH logins'))['row_count'] == 1
+    assert (await s.search.answer('Show failed SSH logins'))['row_count'] == 1
+    assert (await s.search.answer('Show SSH logs in the last 1 hour'))['row_count'] == 0
+    assert (await s.search.answer('Show SSH logs in the last 60 days'))['row_count'] == 2
+    assert (await s.search.answer('Show recent events'))['row_count'] == 200
+    assert (await s.search.answer('198.51.100.40'))['row_count'] == 2
+    assert (await s.search.answer('Show logs for 198.51.100.40'))['row_count'] == 2
+    assert (await s.search.answer('Show failed logins'))['row_count'] == 43
+    suggestions = workspace_suggestions(s.repo)
+    assert len(suggestions) == 4 and 'Show SSH logs' in suggestions
+    for question in suggestions:
+        assert (await s.search.answer(question))['row_count'] > 0
+
+
+@pytest.mark.parametrize('question', [
+    "Show events from x' OR 1=1 --", 'Show events from x; DELETE FROM events',
+    'Show ssh logs; DROP TABLE events',
+])
+async def test_query_templates_reject_injection(s, question):
+    with pytest.raises(Unanswerable):
+        await s.search.answer(question)
+
+
+def test_new_query_templates_are_readonly_and_windows_format():
+    from app.search.sql_guard import check
+    from app.search.templates import match_template, workspace_suggestions
+    for question in ['Show recent events', 'Show SSH logs', 'Show Windows logs',
+                     'Show failed logins', 'Show events from Parth.local', 'Show logs for 192.0.2.1']:
+        hit = match_template(question)
+        assert hit and check(hit.sql).ok, question
+    assert "windows-security-json" in match_template('Show Windows logs').sql
+    assert len(workspace_suggestions(SimpleNamespace(sources=lambda: []))) == 4

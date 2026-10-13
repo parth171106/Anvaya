@@ -46,6 +46,8 @@ class Auth:
         self.session_users = {}
         self.attempts = deque()
         self.signup_attempts = deque()
+        self.recovery_attempts = deque()
+        self.recovery = None
         self.accounts = None
         if cfg.multi_user and (not self.enabled or cfg.demo_mode):
             raise ValueError("Multi-user mode requires authentication and live mode")
@@ -69,6 +71,8 @@ class Auth:
         if cfg.multi_user:
             from app.accounts import Accounts
             self.accounts = Accounts(cfg, self.credentials)
+            from app.recovery import Recovery
+            self.recovery = Recovery(self.accounts)
 
     def session(self, token: str) -> bool:
         expires = self.sessions.get(digest(token), 0)
@@ -132,7 +136,9 @@ class AuthMiddleware:
         if not protected:
             return await self.app(scope, receive, send)
         public = (method, path) in (("GET", "/api/ready"), ("GET", "/api/auth/session"),
-                                   ("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("GET", "/api/legal"))
+                                   ("POST", "/api/auth/login"), ("POST", "/api/auth/register"), ("GET", "/api/legal"),
+                                   ("GET", "/api/auth/recovery-options"),
+                                   ("POST", "/api/auth/reset-password"))
         principal = None
         authorization = request.headers.get("authorization", "")
         if authorization:

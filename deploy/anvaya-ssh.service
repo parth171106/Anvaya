@@ -1,0 +1,25 @@
+[Unit]
+Description=ANVAYA OpenSSH authentication collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=anvaya-ssh
+Group=anvaya-ssh
+SupplementaryGroups=systemd-journal
+WorkingDirectory=/opt/anvaya-ssh
+EnvironmentFile=/etc/anvaya-ssh/collector.env
+ExecStart=/opt/anvaya-ssh/venv/bin/python -m collectors.linux_ssh --api ${ANVAYA_API} --api-key-file /etc/anvaya-ssh/collector.key --checkpoint /var/lib/anvaya-ssh/checkpoint.json
+Restart=on-failure
+RestartSec=15
+StateDirectory=anvaya-ssh
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

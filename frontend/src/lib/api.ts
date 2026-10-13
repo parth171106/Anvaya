@@ -56,12 +56,15 @@ export const api = {
     login: (username: string, password: string) => post<{ ok: boolean }>('/auth/login', { username, password }),
     logout: () => post<{ ok: boolean }>('/auth/logout'),
     register: (invite: string, username: string, password: string, terms_version: string) =>
-      post<{ ok: boolean }>('/auth/register', { invite, username, password, terms_version }),
+      post<{ ok: boolean; recovery_code: string }>('/auth/register', { invite, username, password, terms_version }),
+    recoveryOptions: () => get<{ code_available: boolean }>('/auth/recovery-options'),
+    resetPassword: (body: { username: string; code: string; password: string }) => post<{ ok: boolean }>('/auth/reset-password', body),
     acceptTerms: (terms_version: string) => post<{ ok: boolean }>('/auth/accept-terms', { terms_version }),
   },
   legal: () => get<LegalNotice>('/legal'),
   account: {
-    profile: () => get<{ username: string; role: string; account_id: string; has_collector_key: boolean; terms_version: string; accepted_at: number; origin: string; raw_limit_bytes: number }>('/account'),
+    profile: () => get<{ username: string; role: string; account_id: string; has_collector_key: boolean; terms_version: string; accepted_at: number; origin: string; raw_limit_bytes: number; has_recovery_code: boolean }>('/account'),
+    recoveryCode: (password: string) => post<{ code: string }>('/account/recovery-code', { password }),
     rotateKey: () => post<{ key: string }>('/account/collector-key'),
     list: () => get<{ items: { id: string; username: string; role: string; disabled: number }[]; invitations: { id: string; expires_at: number }[]; limit: number }>('/admin/accounts'),
     invite: () => post<{ url: string; expires_at: number }>('/admin/invites'),

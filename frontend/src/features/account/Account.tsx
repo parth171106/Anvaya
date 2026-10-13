@@ -3,6 +3,8 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/components/shell/AuthGate';
 import { LegalLinks } from '@/components/shell/Legal';
 import { Button } from '@/components/ui/button';
+import { PasswordInput } from '@/components/ui/password-input';
+import { RecoveryCode } from '@/components/shell/Recovery';
 
 function downloadKey(key: string) {
   const url = URL.createObjectURL(new Blob([key + '\n'], { type: 'text/plain' }));
@@ -19,6 +21,8 @@ export default function Account() {
   const [invitation, setInvitation] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
   async function refresh() {
     setProfile(await api.account.profile());
     if (auth.role === 'admin') setMembers(await api.account.list());
@@ -33,6 +37,14 @@ export default function Account() {
   return <div className="max-w-[1000px] space-y-6">
     <header><h1 className="text-h1 font-semibold">Your workspace</h1><p className="mt-2 text-body text-graphite">Signed in as {auth.username}. Your logs are separate from other accounts; the server operator can access hosted data.</p></header>
     {error && <p role="alert" className="rounded-panel border border-rule bg-surface p-4 text-int-tampered">{error}</p>}
+    <section className="space-y-4 rounded-panel border border-rule bg-surface p-6">
+      <h2 className="text-h2 font-semibold">Password recovery</h2>
+      <p className="text-body text-graphite">{profile?.has_recovery_code ? 'A recovery code is enabled. Replacing it invalidates the previous code.' : 'Save a recovery code now so you can reset your password if you forget it.'} Recovery signs out all browser sessions; collectors keep their existing keys.</p>
+      <div><label htmlFor="recovery-current-password" className="mb-2 block text-label">Confirm your current password</label><PasswordInput id="recovery-current-password" autoComplete="current-password" maxLength={1024} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} /></div>
+      <Button disabled={busy || !currentPassword} onClick={() => void action(async () => { setRecoveryCode((await api.account.recoveryCode(currentPassword)).code); setCurrentPassword(''); })}>{profile?.has_recovery_code ? 'Replace recovery code' : 'Generate recovery code'}</Button>
+      {recoveryCode && <RecoveryCode code={recoveryCode} username={auth.username} />}
+
+    </section>
     <section className="space-y-4 rounded-panel border border-rule bg-surface p-6">
       <h2 className="text-h2 font-semibold">Connect a Windows computer</h2>
       <p className="text-body text-graphite">Only connect computers you own or are authorized to monitor. This sends sign-in event XML, including usernames, device names and IP addresses, to this server. The collector initially includes the last 15 minutes.</p>

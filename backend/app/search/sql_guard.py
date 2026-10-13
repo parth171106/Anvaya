@@ -5,7 +5,7 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.tokens import Tokenizer
 
-COLUMNS = {"time", "device", "vendor", "class_uid", "class_name", "src_ip", "src_port", "dst_ip", "dst_port",
+COLUMNS = {"time", "device", "vendor", "format", "class_uid", "class_name", "src_ip", "src_port", "dst_ip", "dst_port",
            "user_name", "action", "status", "severity", "title"}
 FUNCS = (exp.Count, exp.Sum, exp.Min, exp.Max, exp.Avg, exp.Lower, exp.Upper, exp.Substring, exp.Length, exp.Coalesce)
 ANON_FUNCS = {"STRFTIME", "DATETIME", "SUBSTR"}

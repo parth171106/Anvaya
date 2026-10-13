@@ -12,7 +12,7 @@ from fastapi.responses import Response
 from app.api import (errors, routes_delivery, routes_demo, routes_events, routes_health, routes_incidents, routes_ledger,
                      routes_parsers, routes_search, routes_sources, routes_stream)
 from app.api.errors import not_found
-from app.api import routes_accounts, routes_legal
+from app.api import routes_accounts, routes_legal, routes_recovery
 from app.api.deps import C
 from app.auth import Auth, AuthMiddleware, router as auth_router
 from app.core import config
@@ -119,6 +119,7 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
     errors.install(app)
     app.include_router(auth_router)
     app.include_router(routes_accounts.router)
+    app.include_router(routes_recovery.router)
     app.include_router(routes_legal.router)
     app.include_router(ingest_http.router)
     for r in (routes_health, routes_events, routes_ledger, routes_sources, routes_parsers, routes_incidents,
