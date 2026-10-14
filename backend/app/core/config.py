@@ -25,6 +25,10 @@ class Config:
     public_signup: bool = False
     max_accounts: int = 10
     workspace_raw_limit: int = 100 * 1024 * 1024
+    ai_enabled: bool = False
+    ai_key_file: Path | None = None
+    ai_model: str = ""
+    ai_evidence_enabled: bool = False
 
 
 def load(env=os.environ) -> Config:
@@ -50,4 +54,8 @@ def load(env=os.environ) -> Config:
         public_signup=env.get("ANVAYA_PUBLIC_SIGNUP", "0") == "1",
         max_accounts=int(env.get("ANVAYA_MAX_ACCOUNTS", "10")),
         workspace_raw_limit=int(env.get("ANVAYA_WORKSPACE_RAW_LIMIT", str(100 * 1024 * 1024))),
+        ai_enabled=env.get("ANVAYA_AI_ENABLED", "0") == "1",
+        ai_key_file=Path(env["ANVAYA_AI_KEY_FILE"]) if env.get("ANVAYA_AI_KEY_FILE") else None,
+        ai_model=env.get("ANVAYA_AI_MODEL", ""),
+        ai_evidence_enabled=env.get("ANVAYA_AI_EVIDENCE_ENABLED", "0") == "1",
     )

@@ -54,6 +54,9 @@ class IncidentSummary(BaseModel):
     devices: list[str]; event_count: int; first_time: int; last_time: int; status: Literal["open", "closed"]
 
 class SearchResult(BaseModel):
+    query_id: str | None = None
+    result_type: Literal["events", "incidents"] = "events"
+    incidents: list[IncidentSummary] = []
     question: str; engine: Literal["llm", "template"]; model: str | None; sql: str; params: dict
     clock_caption: str; columns: list[str]; rows: list[list]; row_count: int; took_ms: int
 

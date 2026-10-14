@@ -17,6 +17,7 @@ from app.parsers.registry import PackRegistry
 from app.pipeline.replay import ReplayManager
 from app.pipeline.worker import PipelineWorker
 from app.search.llm import OllamaClient
+from app.search.assistant import AssistantService
 from app.search.nl2sql import SearchService
 from app.storage.sqlite_repo import SqliteRepository
 from app.stream.bus import EventBus
@@ -74,6 +75,7 @@ class Container:
         self.siem = SiemForwarder(FileSink(d / "outbox" / "siem-forward.ndjson"), self.clock)
         self.event_hooks = [self.correlator.on_batch, self.silence.on_events, self.siem.on_batch]
         self.search = SearchService(self.repo, self.llm, self.clock, self.cfg)
+        self.assistant = AssistantService(self)
         self.drafts = DraftService(self, CachedDraftSource() if self.cfg.demo_mode else LlmDraftSource(self.llm))
         with self.repo.tx():
             for p in self.registry.packs:
