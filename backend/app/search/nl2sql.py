@@ -8,6 +8,7 @@ from app.search import sql_guard
 from app.search.llm import clean_sql
 from app.search.prompt import SYSTEM, user_message
 from app.search.templates import match_template
+from app.search.incidents import incident_answer
 
 log = logging.getLogger("anvaya.search")
 
@@ -29,6 +30,9 @@ class SearchService:
         return f"now = {t:%H:%M:%S} IST ({self.clock.label()})"
 
     async def answer(self, question: str) -> dict:
+        incidents = incident_answer(self, question)
+        if incidents is not None:
+            return incidents
         t0 = time.perf_counter()
         hit = match_template(question)
         now = self.clock.now_ms()
