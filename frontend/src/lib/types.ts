@@ -55,7 +55,8 @@ export interface Stats { raw_total: number; normalized_total: number; quarantine
   open_incidents: number; sources_total: number; sources_silent: number;
   last_bench: { eps: number; machine: string; measured_at: number } | null;
   clock: { now_ms: number; label: string; display_tz: string }; }
-export interface SearchResult { question: string; engine: 'llm' | 'template'; model: string | null; sql: string; params: { now_ms: number };
+export interface SearchResult { query_id?: string; question: string; engine: 'llm' | 'template'; model: string | null; sql: string; params: { now_ms: number };
+  result_type?: 'events' | 'incidents'; incidents?: IncidentSummary[];
   clock_caption: string; columns: string[]; rows: (string | number | null)[][]; row_count: number; took_ms: number; }
 export interface DeliveryStatus { siem: { mode: 'file_sink'; target: string; forwarded: number; last_forwarded: number | null; last_payload: string | null; status: string };
   lake: { exports: { file: string; rows: number; bytes: number; created: number }[] }; retention: { available: boolean }; }
@@ -67,7 +68,7 @@ export type ComponentStatus = { status: string; detail?: string; ok_count?: numb
 export interface Health { status: 'ok' | 'degraded'; demo_mode: boolean; version: string; components: Record<string, ComponentStatus>; }
 export interface DemoState { demo_mode: boolean; phase?: DemoPhase; speed?: 10 | 20 | 40; silenced?: string[]; tampered?: boolean;
   resealed?: boolean; unknown_injected?: boolean; send_errors?: number; clock?: { now_ms: number; label: string }; reset?: boolean; }
-export interface IncidentDetail extends IncidentSummary { stages_detail: IncidentStage[]; risk_breakdown: { stages: number; devices: number; ordered: number }; events: EventSummary[]; }
+export interface IncidentDetail extends IncidentSummary { explanation?: string; recommended_action?: string; stages_detail: IncidentStage[]; risk_breakdown: { stages: number; devices: number; ordered: number }; events: EventSummary[]; }
 export interface ParserInfo { name: string; version: string; status: string; origin: 'builtin' | 'ai_draft' | 'user'; format: FormatId;
   approved_by: string | null; approved_at: number | null; roundtrip_pass_rate: number | null; events_parsed: number; }
 export interface ParserDraft { draft_id: string; group_id: string; status: 'drafted' | 'tested' | 'approved' | 'rejected';

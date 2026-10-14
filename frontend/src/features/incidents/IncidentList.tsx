@@ -42,7 +42,7 @@ export default function IncidentList() {
   const q = useQuery({ queryKey: qk.incidents, queryFn: api.incidents.list });
   return (
     <div>
-      <PageHeader title="Incidents" subtitle="Cross-device stories, built from normalized evidence" />
+      <PageHeader title="Incidents" subtitle="Security findings linked to their original evidence" />
       {q.isPending ? (
         <Skeleton><div className="space-y-3"><Bone className="h-28" /><Bone className="h-28" /></div></Skeleton>
       ) : q.isError ? (
@@ -50,7 +50,7 @@ export default function IncidentList() {
       ) : q.data.items.length === 0 ? (
         <div className="rounded-panel border border-rule bg-surface">
           <EmptyState icon={Siren} title="No incidents yet"
-            body="ANVAYA opens an incident when the same external address shows two or more attack stages across your devices." />
+            body="ANVAYA flags 10 failed SSH connections from one IP to one device within a 10-minute correlation window, or multiple attack stages from an external IP. A finding is a reason to investigate, not proof of a breach." />
         </div>
       ) : (
         <div className="space-y-3">{q.data.items.map((i) => <IncidentCard key={i.incident_id} incident={i} />)}</div>

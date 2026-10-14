@@ -19,9 +19,14 @@ services:
       ANVAYA_AUTH_FILE: /run/secrets/auth.json
       ANVAYA_PUBLIC_ORIGIN: https://${ANVAYA_DOMAIN:?Set ANVAYA_DOMAIN in .env.deploy}
       OLLAMA_URL: http://127.0.0.1:9
+      ANVAYA_AI_ENABLED: ${ANVAYA_AI_ENABLED:-0}
+      ANVAYA_AI_MODEL: ${ANVAYA_AI_MODEL:-gemini-3.5-flash-lite}
+      ANVAYA_AI_KEY_FILE: /run/secrets/ai/gemini-api.key
+      ANVAYA_AI_EVIDENCE_ENABLED: ${ANVAYA_AI_EVIDENCE_ENABLED:-0}
     volumes:
       - deploy-data:/data
       - ./secrets/auth.json:/run/secrets/auth.json:ro
+      - ./secrets/ai:/run/secrets/ai:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=2)"]
       interval: 15s

@@ -18,6 +18,18 @@ export interface LegalNotice {
   terms: { title: string; text: string }[]; privacy: { title: string; text: string }[];
 }
 
+export interface AIStatus { configured: boolean; evidence_enabled: boolean; provider: string; model: string | null }
+export interface AIExplanationResult {
+  claims: { text: string; citations: string[] }[]; steps: string[];
+  references: Record<string, { label: string; href: string }>;
+  model: string; sample_count: number; returned_count: number; truncated: boolean;
+}
+export interface AIPreview {
+  preview_id: string;
+  context: Record<string, unknown>; evidence: { id: string; fields: Record<string, unknown> }[];
+  returned_count: number; sample_count: number; truncated: boolean; note: string;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public detail: Record<string, unknown> = {}) {
     super(message);
@@ -106,8 +118,13 @@ export const api = {
     get: (id: string) => get<IncidentDetail>(`/incidents/${id}`),
   },
   search: {
-    ask: (question: string) => post<SearchResult>('/search', { question }),
+    ask: (question: string, options: { use_ai?: boolean; consent?: boolean; previous_id?: string } = {}) => post<SearchResult>('/search', { question, ...options }),
     suggestions: () => get<{ items: string[] }>('/search/suggestions'),
+  },
+  ai: {
+    status: () => get<AIStatus>('/ai/status'),
+    preview: (kind: 'search' | 'incident', target: string) => post<AIPreview>('/ai/preview', { kind, target }),
+    explain: (kind: 'search' | 'incident', target: string, consent: boolean, preview_id: string) => post<AIExplanationResult>('/ai/explain', { kind, target, consent, preview_id }),
   },
   delivery: {
     status: () => get<DeliveryStatus>('/delivery/status'),

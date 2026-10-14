@@ -10,11 +10,13 @@ import { qk } from '@/lib/queryKeys';
 import type { EventSummary, IncidentDetail as Detail, IncidentStage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { IncidentHeaderLine } from './IncidentList';
+import { AIExplanation } from '@/features/search/AIExplanation';
 
 const CHIPS_SHOWN = 2;
 
 function RiskBreakdown({ d }: { d: Detail }) {
   const b = d.risk_breakdown;
+  if (d.stages.length === 1 && d.stages[0] === 'credential') return <p className="mt-2 text-body text-graphite">Rule severity: Medium (40/100). This score is a review priority, not the probability of a breach.</p>;
   return (
     <p className="mt-2 text-body text-graphite">
       Risk breakdown: {d.stages.length} stages +{b.stages} · {d.devices.length} devices +{b.devices} · in attack order +{b.ordered}
@@ -88,6 +90,12 @@ export default function IncidentDetail() {
       <h1 className="mt-1 mb-3 font-display text-h1 font-semibold">{d.title}</h1>
       <IncidentHeaderLine i={d} />
       <RiskBreakdown d={d} />
+      {d.explanation && <section className="mt-4 space-y-2 rounded-panel border border-rule bg-surface p-5">
+        <h2 className="text-h3 font-semibold">Why this needs attention</h2>
+        <p className="text-body">{d.explanation}</p>
+        <p className="text-body text-graphite">{d.recommended_action}</p>
+      </section>}
+      <AIExplanation key={incidentId} kind="incident" target={incidentId} />
       <ol className="mt-6 rounded-panel border border-rule bg-surface p-6" aria-label="Incident timeline">
         {d.stages_detail.map((s, i) => (
           <StageGroup key={s.stage} stage={s} isLast={i === d.stages_detail.length - 1} onOpenEvent={(id) => navigate(`/events/${id}`)}
