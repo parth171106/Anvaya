@@ -39,6 +39,41 @@ async def accept_owner(client):
     assert (await client.post("/api/auth/accept-terms", json={"terms_version": TERMS_VERSION}, headers=CONSOLE)).status_code == 200
 
 
+async def test_ai_context_and_evidence_are_private_to_workspace(multi, monkeypatch):
+    from unittest.mock import AsyncMock
+    app, owner = multi
+    assert (await owner.get("/api/ai/status")).status_code == 401
+    await accept_owner(owner)
+    alice, aid, _ = await enroll(app, owner, "alice-ai")
+    bob, bid, _ = await enroll(app, owner, "bob-ai")
+    try:
+        a, b = app.state.workspaces.get(aid), app.state.workspaces.get(bid)
+        for container in (a, b):
+            container.cfg = replace(container.cfg, ai_evidence_enabled=True)
+            monkeypatch.setattr(container.assistant.provider, "configured", lambda: True)
+            container.assistant.provider.complete = AsyncMock(return_value={"sql": "SELECT time FROM events"})
+        key = a.assistant.remember({"question": "alice only", "sql": "SELECT title FROM events", "params": {},
+                                    "columns": ["title"], "rows": [["Alice private data"]]})["query_id"]
+        for path, body in (
+            ("/api/ai/preview", {"kind": "search", "target": key}),
+            ("/api/ai/explain", {"kind": "search", "target": key, "consent": True}),
+            ("/api/search", {"question": "follow up", "use_ai": True, "consent": True, "previous_id": key}),
+        ):
+            res = await bob.post(path, json=body, headers=CONSOLE)
+            assert res.status_code == 404
+            assert "Alice private data" not in res.text
+        b.assistant.provider.complete.assert_not_called()
+        preview = await alice.post("/api/ai/preview", json={"kind": "search", "target": key}, headers=CONSOLE)
+        assert preview.status_code == 200 and "Alice private data" in preview.text
+        denied = await alice.post("/api/ai/explain", json={"kind": "search", "target": key}, headers=CONSOLE)
+        assert denied.status_code == 422
+        assert (await alice.post("/api/ai/preview", json={"kind": "search", "target": key})).status_code == 403
+        a.assistant.provider.complete.assert_not_called()
+    finally:
+        await alice.aclose()
+        await bob.aclose()
+
+
 async def enroll(app, owner, name):
     inv = await owner.post("/api/admin/invites", headers=CONSOLE)
     assert inv.status_code == 201
@@ -213,3 +248,34 @@ async def test_invalid_expired_revoked_invites_limits_and_quota(multi):
         assert (await owner.post("/api/admin/invites", headers=CONSOLE)).status_code == 409
     finally:
         await member.aclose()
+
+
+async def test_ssh_incident_and_evidence_are_private(multi):
+    from tests.test_correlation import ssh_failures
+    app, owner = multi
+    await accept_owner(owner)
+    alice, aid, _ = await enroll(app, owner, 'alice')
+    bob, _, _ = await enroll(app, owner, 'bob')
+    try:
+        container = app.state.workspaces.get(aid)
+        ssh_failures(container, 10)
+        container.ledger.seal()
+        items = (await alice.get('/api/incidents')).json()['items']
+        assert len(items) == 1
+        iid = items[0]['incident_id']
+        detail = (await alice.get('/api/incidents/' + iid)).json()
+        assert 'distinct SSH connections' in detail['explanation'] and len(detail['events']) == 10
+        assert (await bob.get('/api/incidents')).json()['items'] == []
+        assert (await bob.get('/api/incidents/' + iid)).status_code == 404
+        eid = detail['events'][0]['event_id']
+        evidence = (await alice.get('/api/events/' + eid)).json()
+        raw_id = evidence['raw']['raw_id']
+        assert evidence['anvaya']['roundtrip']['ok']
+        assert (await bob.get('/api/events/' + eid)).status_code == 404
+        assert (await bob.get('/api/raw/' + raw_id)).status_code == 404
+        verification = await alice.post('/api/ledger/verify/' + raw_id, headers=CONSOLE)
+        assert verification.status_code == 200 and verification.json()['ok'] is True
+        assert (await bob.post('/api/ledger/verify/' + raw_id, headers=CONSOLE)).status_code == 404
+    finally:
+        await alice.aclose()
+        await bob.aclose()
