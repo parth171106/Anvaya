@@ -17,6 +17,7 @@ def entry(message="Accepted publickey for ubuntu from 198.51.100.40 port 24778 s
 
 
 @pytest.mark.parametrize("message,status,user,ip", [
+    ("Invalid user anvaya-check from 198.51.100.40 port 55430", "Failure", "anvaya-check", "198.51.100.40"),
     ("Accepted publickey for ubuntu from 198.51.100.40 port 24778 ssh2: RSA SHA256:test", "Success", "ubuntu", "198.51.100.40"),
     ("Accepted password for alice from 2001:db8::1 port 2222 ssh2", "Success", "alice", "2001:db8::1"),
     ("Failed publickey for invalid user fake from 198.51.100.40 port 3210 ssh2: RSA SHA256:test [preauth]", "Failure", "fake", "198.51.100.40"),

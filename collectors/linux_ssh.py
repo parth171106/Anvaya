@@ -1,7 +1,7 @@
 """Forward OpenSSH authentication results from systemd's journal to ANVAYA.
 
-Only Accepted/Failed messages are selected. Service lifecycle messages, PAM session
-messages and disconnects are excluded so one login is not counted several times.
+Accepted/Failed and Invalid user messages are selected. Service lifecycle messages, PAM session
+messages and disconnects are excluded to retain authentication evidence without session lifecycle noise.
 The raw message is retained; journal metadata supplies the ISO UTC timestamp,
 hostname and PID. The durable journal cursor advances only after acknowledgement.
 """
@@ -19,7 +19,7 @@ import httpx
 
 from collectors.windows_auth import local_api, request_with_retry, save_checkpoint
 
-AUTH_MESSAGE = re.compile(r"^(Accepted|Failed) ")
+AUTH_MESSAGE = re.compile(r"^(Accepted|Failed|Invalid user) ")
 
 
 def journal_line(entry: dict) -> str | None:

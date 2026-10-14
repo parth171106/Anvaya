@@ -5,7 +5,7 @@ Linux collector reads the journal's JSON output and renders each selected record
 as ISO UTC time, hostname, process/PID and the unchanged MESSAGE. Journal timestamps
 are rendered to seconds, matching short-iso; the cursor provides event identity.
 
-Supported results: `Accepted` and `Failed` publickey/password/keyboard-interactive
+Supported results: `Invalid user` rejections and `Accepted`/`Failed` publickey/password/keyboard-interactive
 logins, including invalid users and IPv6 addresses. These map to OCSF Authentication
 (3002), with raw evidence, source field locations and round-trip verification.
 Service restarts, PAM session messages and disconnects are deliberately excluded;
@@ -63,9 +63,26 @@ or rotated key; overlapping records remain duplicate-safe within the same worksp
 Sign into the destination account and open Live feed or Sources & parsers. Filter
 by the server's actual hostname, not the `synthetic-lab-*` devices. A normal SSH
 login should produce a Success authentication event with its source IP and raw log.
-An ordinary successful login is not an incident. The existing cross-device rule
-is unchanged; a dedicated SSH failures-followed-by-success rule is not implemented
-by this collector. Do not label unrelated successful logins as compromises.
+An ordinary successful login is not an incident. ANVAYA also opens a Medium
+finding when at least 10 distinct failed SSH connections share a source IP and
+device within one correlation window. Windows last 10 minutes and are anchored
+at the source IP's first event in each window; bursts split across windows may
+not trigger. Messages sharing a device/source IP/source port count once within
+that window. A reused port can therefore undercount. Both private and public
+source IPs are eligible. Findings show the rule, linked raw evidence and suggested
+review steps; they do not prove password guessing or a successful intrusion.
+The existing multiple-stage correlation remains available. A dedicated
+failures-followed-by-success rule is not implemented.
+
+For an authorized demonstration, use a fresh, untrusted key with a clearly named
+nonexistent username such as `anvaya-check`. Make at most 10 separate SSH
+connections to your own server from an already permitted IP. Every attempt must
+be rejected. Keep password authentication disabled and SSH ingress restricted.
+Mark the demonstration in your project notes as a controlled test with real
+server-generated logs. Open the resulting incident, inspect its linked events,
+and verify their integrity. Never change stored raw logs to label a test.
+Existing journal entries skipped before the collector upgrade are not backfilled
+automatically; new invalid-user records are collected after restart.
 
 Run `sudo systemctl stop anvaya-ssh` to pause collection. This does not delete logs.
 The collector does not configure Caddy access logging; that is a separate source.

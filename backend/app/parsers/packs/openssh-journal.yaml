@@ -1,5 +1,5 @@
 name: openssh-journal
-version: 1.0.0
+version: 1.1.0
 origin: builtin
 priority: 35
 vendor: OpenBSD
@@ -9,15 +9,15 @@ format: openssh-journal
 source_timezone: UTC
 detect:
   header: none
-  body_regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2}) \S+ sshd(?:-session)?\[\d+\]: (?:Accepted|Failed) '
+  body_regex: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2}) \S+ sshd(?:-session)?\[\d+\]: (?:Accepted|Failed|Invalid user) '
 prefix:
-  regex: '^(?P<timestamp>\S+) (?P<host>\S+) (?P<process>sshd(?:-session)?)\[(?P<pid>\d+)\]: (?P<result>Accepted|Failed) '
+  regex: '^(?P<timestamp>\S+) (?P<host>\S+) (?P<process>sshd(?:-session)?)\[(?P<pid>\d+)\]: (?P<result>Accepted|Failed|Invalid user) '
   fields:
     timestamp: { to: time, transform: { timestamp: '%Y-%m-%dT%H:%M:%S%z' }, also: metadata.original_time }
     host: { to: device.hostname, also: dst_endpoint.hostname }
     pid: { to: unmapped.process_id }
     process: { to: unmapped.process_name }
-    result: { to: status, transform: { enum: { Accepted: Success, Failed: Failure } } }
+    result: { to: status, transform: { enum: { Accepted: Success, Failed: Failure, Invalid user: Failure } } }
 rules:
   - id: ssh-login-success
     when: { result: Accepted }
@@ -34,4 +34,12 @@ rules:
     regex: '^(?P<method>\S+) for (?:invalid user )?(?P<user>\S+) from (?P<ip>\S+) port (?P<port>\d+) ssh2(?P<details>.*)$'
     ocsf: { class_uid: 3002, activity: Logon, status: Failure, severity: Medium }
     map: *fields
+  - id: ssh-invalid-user
+    when: { result: Invalid user }
+    regex: '^(?P<user>\S+) from (?P<ip>\S+) port (?P<port>\d+)$'
+    ocsf: { class_uid: 3002, activity: Logon, status: Failure, severity: Medium }
+    map:
+      user: { to: user.name }
+      ip: { to: src_endpoint.ip, type: ip }
+      port: { to: src_endpoint.port, type: int }
 required: [time, device.hostname, user.name, src_endpoint.ip, src_endpoint.port]

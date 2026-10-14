@@ -274,7 +274,7 @@ class SqliteRepository:
     def events_from_src(self, ip: str) -> list[dict]:
         return [dict(r) for r in self.con.execute(
             "SELECT event_id, time, device, class_uid, activity_name, src_ip, dst_ip, dst_port, user_name, action,"
-            " status, title FROM events WHERE src_ip=? ORDER BY time, seq", (ip,))]
+            " status, title, format, src_port FROM events WHERE src_ip=? ORDER BY time, seq", (ip,))]
 
     def incident_by_key(self, attacker_ip: str, window_start: int):
         return self.con.execute("SELECT * FROM incidents WHERE attacker_ip=? AND window_start=?",
@@ -315,7 +315,7 @@ class SqliteRepository:
     def incident_events(self, incident_id: str) -> list[dict]:
         return [dict(r) for r in self.con.execute(
             "SELECT ie.stage, e.event_id, e.time, e.device, e.class_uid, e.dst_ip, e.dst_port, e.user_name, e.action,"
-            " e.status, e.title, e.src_ip FROM incident_events ie JOIN events e USING(event_id)"
+            " e.status, e.title, e.src_ip, e.format FROM incident_events ie JOIN events e USING(event_id)"
             " WHERE ie.incident_id=? ORDER BY e.time, e.seq", (incident_id,))]
 
     # ---- parsers ------------------------------------------------------------------------------------------------
