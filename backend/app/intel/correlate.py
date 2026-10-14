@@ -47,8 +47,24 @@ def by_first_seen(events: list[dict]) -> list[str]:
 
 def evaluate(attacker: str, win: list[dict]) -> dict | None:
     st = stage_events(win)
-    if len(st) < 2:
-        return None
+    if len(st) < 2 or is_internal(attacker):
+        failures = [e for e in win if e.get('format') == 'openssh-journal' and e['status'] == 'Failure']
+        # Invalid-user and Failed-publickey messages can describe one connection.
+        unique = {}
+        for event in failures:
+            unique.setdefault((event['device'], event['src_ip'], event['src_port']), event)
+        failures = list(unique.values())
+        counts = Counter(e['device'] for e in failures)
+        failures = [e for e in failures if counts[e['device']] >= 10]
+        if not failures:
+            return None
+        devices = by_first_seen(failures)
+        return {'attacker_ip': attacker, 'target_ip': None, 'window_start': win[0]['time'],
+                'title': f"Repeated SSH login failures: {attacker}", 'stages': ['credential'],
+                'devices': devices, 'risk': 40, 'level': 'Medium',
+                'risk_breakdown': {'stages': 40, 'devices': 0, 'ordered': 0},
+                'first_time': failures[0]['time'], 'last_time': failures[-1]['time'],
+                '_stage_events': {'credential': failures}}
     contributing = [e for es in st.values() for e in es]
     devices = by_first_seen(contributing)
     firsts = [st[s][0]["time"] for s in STAGES if s in st]
@@ -76,7 +92,9 @@ def headline(stage: str, es: list[dict], attacker: str, target: str | None) -> s
         return "; ".join(parts)
     if stage == "credential":
         users = list(dict.fromkeys(e["user_name"] for e in es if e["user_name"]))
-        return f"{len(es)} failed VPN logins from {attacker} ({', '.join(users)})"
+        formats = {e.get('format') for e in es}
+        protocol = 'SSH' if formats == {'openssh-journal'} else 'VPN' if formats == {'fortigate-kv'} else 'authentication'
+        return f"{len(es)} failed {protocol} logins from {attacker} ({', '.join(users)})"
     e = es[0]
     return f"Firewall allowed {attacker} → {e['dst_ip']}:{e['dst_port']}"
 
@@ -86,7 +104,7 @@ class Correlator:
         self.repo, self.publish = repo, publish
 
     def on_batch(self, events) -> None:
-        attackers = {ip for ev in events if (ip := _src(ev)) and not is_internal(ip) and _stage_relevant(ev.ocsf)}
+        attackers = {ip for ev in events if (ip := _src(ev)) and _stage_relevant(ev.ocsf)}
         for ip in sorted(attackers):
             for win in windows(self.repo.events_from_src(ip)):
                 inc = evaluate(ip, win)
@@ -96,13 +114,15 @@ class Correlator:
     def _upsert(self, inc: dict) -> None:
         st = inc.pop("_stage_events")
         before = self.repo.incident_by_key(inc["attacker_ip"], inc["window_start"])
+        prior_count = self.repo.incident_summary(before["incident_id"])["event_count"] if before else 0
         row = {**inc, **{k: json.dumps(inc[k], separators=(",", ":")) for k in ("stages", "devices", "risk_breakdown")}}
         with self.repo.tx():
             iid = self.repo.upsert_incident(row, [(e["event_id"], s) for s, es in st.items() for e in es])
         summary = self.summary(iid)
         if before is None:
             self.publish("incident.opened", summary)
-        elif json.loads(before["stages"]) != inc["stages"] or before["risk"] != inc["risk"]:
+        elif (json.loads(before["stages"]) != inc["stages"] or before["risk"] != inc["risk"]
+              or (inc['stages'] == ['credential'] and prior_count != summary['event_count'])):
             self.publish("incident.updated", summary)
 
     def summary(self, iid: str) -> dict:
@@ -122,7 +142,15 @@ class Correlator:
                            "devices": by_first_seen(es), "event_count": len(es),
                            "headline": headline(s, es, d["attacker_ip"], d["target_ip"]),
                            "event_ids": [r["event_id"] for r in es]})
-        return {**self.summary(iid), "stages_detail": stages, "risk_breakdown": d["risk_breakdown"]}
+        ssh_only = d['stages'] == ['credential'] and all(r.get('format') == 'openssh-journal' for r in rows)
+        explanation = (
+            'At least 10 distinct SSH connections failed authentication from the same source IP to the same device in a 10-minute correlation window. '
+            'This may indicate password guessing, a misconfigured client or an authorized test. It does not prove a successful intrusion.'
+            if ssh_only else
+            'Multiple attack stages were linked by source IP and time. Review the original events before deciding whether this is an intrusion.')
+        return {**self.summary(iid), "stages_detail": stages, "risk_breakdown": d["risk_breakdown"],
+                'explanation': explanation,
+                'recommended_action': 'Check whether you recognize the source IP and usernames. Open the linked events to inspect raw logs and verify integrity. Review successful logins around the same time; do not block an IP solely on this finding.'}
 
 
 def _stage_relevant(o: dict) -> bool:

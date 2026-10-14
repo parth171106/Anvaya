@@ -61,3 +61,55 @@ def test_replay_is_idempotent(c):
     c.worker.drain()
     assert len(c.repo.incidents()) == 1 and c.repo.incidents()[0]["event_count"] == 56
     assert sum(1 for e, _ in seen if e.startswith("incident.")) == n
+
+
+def ssh_failures(c, count, ip='198.51.100.40', device='ssh-test', start=0):
+    from datetime import datetime, timezone
+    for n in range(start, start + count):
+        stamp = datetime.fromtimestamp((at(D, 10, 0) + n * 1000) / 1000, timezone.utc).isoformat()
+        line = f'{stamp} {device} sshd[123]: Failed publickey for invalid user anvaya-check from {ip} port {22000+n} ssh2: ED25519 SHA256:synthetic-test'
+        c.ingest(line.encode(), 'http', '127.0.0.1')
+    c.worker.drain()
+
+
+def test_standalone_ssh_threshold_evidence_and_replay(c):
+    seen = collect(c)
+    ssh_failures(c, 9)
+    assert not c.repo.incidents()
+    ssh_failures(c, 1, start=9)
+    inc = c.repo.incidents()[0]
+    assert inc['risk'] == 40 and inc['level'] == 'Medium' and inc['event_count'] == 10
+    detail = c.correlator.detail(inc['incident_id'])
+    assert 'failed SSH logins' in detail['stages_detail'][0]['headline']
+    assert 'does not prove' in detail['explanation']
+    assert len(detail['stages_detail'][0]['event_ids']) == 10
+    assert len([e for e,d in seen if e == 'incident.opened']) == 1
+    ssh_failures(c, 1, start=10)
+    assert c.repo.incidents()[0]['event_count'] == 11
+    assert len([e for e,d in seen if e == 'incident.updated']) == 1
+    raw_ids = [r[0] for r in c.repo.con.execute('SELECT raw_id FROM events')]
+    c.replays.start(raw_ids); c.worker.drain()
+    assert len(c.repo.incidents()) == 1 and c.repo.incidents()[0]['event_count'] == 11
+    assert len([e for e,d in seen if e.startswith('incident.')]) == 2
+
+
+def test_ssh_failures_do_not_combine_different_devices_ips_or_windows(c):
+    ssh_failures(c, 5, device='one')
+    ssh_failures(c, 5, device='two')
+    ssh_failures(c, 5, ip='198.51.100.41', device='one')
+    ssh_failures(c, 5, device='one', start=601)
+    assert not c.repo.incidents()
+
+
+def test_private_source_ssh_is_detected(c):
+    ssh_failures(c, 10, ip='10.10.10.10')
+    assert c.repo.incidents()[0]['stages'] == ['credential']
+
+
+def test_ssh_duplicate_messages_on_one_connection_do_not_raise_finding(c):
+    ssh_failures(c, 9)
+    for n in range(9):
+        line = f'2026-09-30T04:30:00+00:00 ssh-test sshd[123]: Invalid user anvaya-check from 198.51.100.40 port {22000+n}'
+        c.ingest(line.encode(), 'http', '127.0.0.1')
+    c.worker.drain()
+    assert not c.repo.incidents()
