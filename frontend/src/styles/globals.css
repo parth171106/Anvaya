@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Tailwind v4 maps the tokens here (v4's replacement for tailwind.config.ts). Every value is a token reference. */
 @theme inline {
@@ -7,7 +8,8 @@
   --color-paper: var(--paper); --color-surface: var(--surface); --color-ink: var(--ink); --color-graphite: var(--graphite);
   --color-rule: var(--rule); --color-seal: var(--seal); --color-muted: var(--paper-sunk); --color-paper-sunk: var(--paper-sunk);
   --color-ink-soft: var(--ink-soft); --color-seal-hover: var(--seal-hover); --color-seal-tint: var(--seal-tint);
-  --color-on-ink: var(--on-ink); --color-transparent: transparent; --color-current: currentColor;
+  --color-nav: var(--nav); --color-nav-hover: var(--nav-hover); --color-scrim: var(--scrim);
+  --color-on-seal: var(--on-seal); --color-on-danger: var(--on-danger); --color-on-ink: var(--on-ink); --color-transparent: transparent; --color-current: currentColor;
   --color-sev-info: var(--sev-info); --color-sev-info-bg: var(--sev-info-bg); --color-sev-low: var(--sev-low);
   --color-sev-low-bg: var(--sev-low-bg); --color-sev-medium: var(--sev-medium); --color-sev-medium-bg: var(--sev-medium-bg);
   --color-sev-high: var(--sev-high); --color-sev-high-bg: var(--sev-high-bg); --color-sev-critical: var(--sev-critical);
@@ -74,6 +76,11 @@
     font-variant-numeric: tabular-nums;
   }
   *, ::before, ::after { border-color: var(--rule); }
+  h1, h2, h3, p, dd, dt { overflow-wrap: anywhere; }
+  input, select, textarea { min-width: 0; }
+  input[type="checkbox"] { flex-shrink: 0; accent-color: var(--seal); }
+  pre { max-width: 100%; }
+  svg { flex-shrink: 0; }
   :focus { outline: none; }
   :focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
   ::selection { background: var(--seal-tint); }
