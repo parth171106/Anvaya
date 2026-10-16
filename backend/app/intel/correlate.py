@@ -128,7 +128,7 @@ class Correlator:
     def summary(self, iid: str) -> dict:
         d = self.repo.incident_summary(iid)
         return {k: d[k] for k in ("incident_id", "title", "attacker_ip", "target_ip", "risk", "level", "stages",
-                                  "devices", "event_count", "first_time", "last_time", "status")}
+                                  "devices", "event_count", "first_time", "last_time", "status", "workflow")}
 
     def detail(self, iid: str) -> dict | None:
         d = self.repo.incident_summary(iid)
