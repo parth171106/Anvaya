@@ -38,6 +38,19 @@ class SqliteRepository:
         self.con.execute("CREATE TABLE IF NOT EXISTS ingest_receipts ("
                          "idempotency_key TEXT PRIMARY KEY, payload_sha256 TEXT NOT NULL,"
                          "raw_id TEXT NOT NULL REFERENCES raw_events(raw_id))")
+        self.con.executescript("""
+            CREATE TABLE IF NOT EXISTS incident_workflow (
+                incident_id TEXT PRIMARY KEY REFERENCES incidents(incident_id) ON DELETE CASCADE,
+                state TEXT NOT NULL CHECK(state IN ('new','investigating','resolved')),
+                controlled_test INTEGER NOT NULL CHECK(controlled_test IN (0,1)),
+                version INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS incident_activity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                incident_id TEXT NOT NULL REFERENCES incidents(incident_id) ON DELETE CASCADE,
+                at INTEGER NOT NULL, actor TEXT NOT NULL, state TEXT NOT NULL,
+                controlled_test INTEGER NOT NULL, note TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS incident_activity_by_incident ON incident_activity(incident_id, id);
+        """)
 
     def close(self) -> None:
         self.con.close()
@@ -306,7 +319,36 @@ class SqliteRepository:
         d = dict(r)
         for k in ("stages", "devices", "risk_breakdown"):
             d[k] = json.loads(d[k])
+        workflow = self.con.execute("SELECT state,controlled_test,version FROM incident_workflow WHERE incident_id=?",
+                                    (incident_id,)).fetchone()
+        d['workflow'] = dict(workflow) if workflow else {
+            'state': 'resolved' if d['status'] == 'closed' else 'new', 'controlled_test': False, 'version': 0}
+        d['workflow']['controlled_test'] = bool(d['workflow']['controlled_test'])
         return d
+
+    def incident_activity(self, incident_id: str) -> list[dict]:
+        return [dict(r) for r in self.con.execute(
+            "SELECT id,at,actor,state,controlled_test,note FROM incident_activity WHERE incident_id=? ORDER BY id DESC LIMIT 100",
+            (incident_id,))]
+
+    def update_incident_workflow(self, incident_id: str, state: str, controlled_test: bool,
+                                 version: int, note: str, actor: str) -> None:
+        with self.tx():
+            current = self.incident_summary(incident_id)
+            if current is None:
+                raise KeyError(incident_id)
+            if current['workflow']['version'] != version:
+                raise ValueError('This investigation changed in another tab. Reload before saving; your note is still here.')
+            at = int(time.time() * 1000)
+            self.con.execute("INSERT INTO incident_workflow VALUES (?,?,?,?) ON CONFLICT(incident_id) DO UPDATE SET "
+                             "state=excluded.state,controlled_test=excluded.controlled_test,version=excluded.version",
+                             (incident_id, state, controlled_test, version + 1))
+            self.con.execute("UPDATE incidents SET status=? WHERE incident_id=?",
+                             ('closed' if state == 'resolved' else 'open', incident_id))
+            self.con.execute("INSERT INTO incident_activity(incident_id,at,actor,state,controlled_test,note) VALUES (?,?,?,?,?,?)",
+                             (incident_id, at, actor, state, controlled_test, note))
+            self.audit(at, actor, 'incident.investigation', incident_id,
+                       {'state': state, 'controlled_test': controlled_test, 'version': version + 1, 'note_added': bool(note)})
 
     def incidents(self) -> list[dict]:
         ids = [r[0] for r in self.con.execute("SELECT incident_id FROM incidents ORDER BY first_time DESC")]
