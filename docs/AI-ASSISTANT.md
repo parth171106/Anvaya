@@ -93,3 +93,11 @@ Offline tests exercise consent, account isolation, context expiry, SQL rejection
 provider-error redaction, limits and citations. The separate real-provider lab uses
 only generated SSH records from reserved example IP addresses; it is not evidence
 of a real attack. No real user records are needed to validate the integration.
+# Parser drafting and quarantined formats
+
+Gemini search and evidence explanations are separate from parser drafting. Parser drafting never automatically sends raw quarantine samples to Gemini.
+
+In live mode, the known 12-field `EDGE` session format can use the bundled hand-authored Acme Edge template. The draft is labelled **hand-authored**, has no AI model or generation timestamp, and still requires **Run tests → Approve & replay**. This is an existing format mapping, not general-purpose AI inference. Similar delimiters alone do not qualify another format for this template.
+
+Other formats require the configured local Ollama model. If it is unavailable, the UI explains that dependency and the original records stay sealed in quarantine. Draft approval requires all four gates to pass, including successful conversion of declared IP and integer fields. Approved hand-authored templates are recorded as user parsers rather than AI drafts.
+
