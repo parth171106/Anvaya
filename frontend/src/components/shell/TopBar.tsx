@@ -7,6 +7,8 @@ import { qk } from '@/lib/queryKeys';
 import type { ComponentStatus, Health } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useDemoStore, useStatsStore, useStreamStore } from '@/state';
+import { ThemeControl } from './ThemeControl';
+import { MobileNavigation } from './NavRail';
 import { SignOut } from './AuthGate';
 
 type Tone = 'ok' | 'warn' | 'down' | 'neutral';
@@ -65,7 +67,7 @@ export function ScenarioClock() {
   const rate = phase === 'scripted' ? speed : 1;
   const now = base.current ? base.current.ms + (Date.now() - base.current.at) * rate : null;
   return (
-    <span className="inline-flex items-baseline gap-2 whitespace-nowrap">
+    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0">
       <span className="text-label text-graphite">{clock?.label ?? 'Scenario clock'}</span>
       <span className="font-mono text-mono-lg text-ink tabular">{timeIST(now)} IST</span>
     </span>
@@ -100,24 +102,32 @@ export function TopBar() {
   const demoMode = useDemoStore((s) => s.demoMode);
   const health = useQuery({ queryKey: qk.health, queryFn: api.health, refetchInterval: 5000, retry: 0 });
   return (
-    <header className="sticky top-0 z-20 border-b border-rule bg-surface shadow-e1">
-      <div className="flex h-16 items-center gap-6 px-8">
+    <header className="z-20 shrink-0 border-b border-rule bg-surface shadow-e1">
+      <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
+        <MobileNavigation />
         <div className="flex shrink-0 items-center gap-3">
           <span aria-hidden className="size-3.5 rounded-[2px] bg-seal" />
           <span className="text-[18px] font-semibold tracking-[0.04em] text-ink">ANVAYA</span>
-          <span className="text-body text-graphite max-[1599px]:hidden">Every perimeter log, one verifiable truth</span>
+          <span className="hidden text-body text-graphite min-[1800px]:inline">Every perimeter log, one verifiable truth</span>
         </div>
-        <div className="ml-auto flex items-center gap-5">
-          <div className="hidden items-center gap-2 min-[1440px]:max-[1599px]:flex">
-            {chips(health.data, health.isError).map((c) => <HealthChip key={c.label} {...c} />)}
-          </div>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeControl />
+          <div className="hidden sm:block"><SignOut /></div>
+        </div>
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 xl:w-auto">
           {demoMode ? <SyntheticDataPill /> : health.data && <HealthChip label="Live-log pilot" tone="neutral" />}
           <ScenarioClock />
           <StreamDot />
-          <SignOut />
         </div>
       </div>
-      <div className="flex h-10 items-center justify-end gap-2 overflow-hidden border-t border-rule px-8 min-[1440px]:max-[1599px]:hidden">
+      <details className="border-t border-rule px-4 py-2 md:hidden">
+        <summary className="cursor-pointer text-label font-medium text-graphite">Service status & session</summary>
+        <div className="flex flex-wrap items-center gap-2 pt-3">
+          {chips(health.data, health.isError).map((c) => <HealthChip key={c.label} {...c} />)}
+          <SignOut />
+        </div>
+      </details>
+      <div className="hidden flex-wrap items-center justify-end gap-2 border-t border-rule px-6 py-2 md:flex lg:px-8">
         {chips(health.data, health.isError).map((c) => <HealthChip key={c.label} {...c} />)}
       </div>
     </header>

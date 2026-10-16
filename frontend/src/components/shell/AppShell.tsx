@@ -38,12 +38,12 @@ export function AppShell() {
   usePresenterKeys();
   useBootstrap();
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-dvh flex-col">
       <TopBar />
       <div className="flex min-h-0 flex-1">
         <NavRail />
         <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1760px] px-8 py-8">
+          <div className="mx-auto max-w-[1760px] [overflow-wrap:anywhere] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             <Outlet />
           </div>
         </main>

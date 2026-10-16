@@ -1,3 +1,4 @@
+import { ThemeControl } from './ThemeControl';
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -119,12 +120,13 @@ function SessionGate({ children }: { children: ReactNode }) {
     } catch (err) { setError(err instanceof Error ? err.message : 'Sign-in failed'); }
     finally { setBusy(false); }
   }
-  if (signupCode) return <main className="flex min-h-screen items-center justify-center bg-paper p-6"><section className="w-full max-w-[460px] space-y-5 rounded-panel border border-rule bg-surface p-8"><h1 className="text-h1 font-semibold">Account created</h1><RecoveryCode code={signupCode} username={username} /><label className="flex items-center gap-3 text-body"><input type="checkbox" checked={savedCode} onChange={e => setSavedCode(e.target.checked)} />I saved my recovery code in a private place.</label><Button disabled={!savedCode} onClick={() => setSignupCode('')}>Continue to sign in</Button></section></main>;
+  if (signupCode) return <main className="flex min-h-screen items-center justify-center bg-paper p-4 sm:p-6"><section className="w-full max-w-[460px] space-y-5 rounded-panel border border-rule bg-surface p-5 sm:p-8"><div className="flex justify-end"><ThemeControl /></div><h1 className="text-h1 font-semibold">Account created</h1><RecoveryCode code={signupCode} username={username} /><label className="flex items-center gap-3 text-body"><input type="checkbox" checked={savedCode} onChange={e => setSavedCode(e.target.checked)} />I saved my recovery code in a private place.</label><Button disabled={!savedCode} onClick={() => setSignupCode('')}>Continue to sign in</Button></section></main>;
   if (session && (!session.enabled || (session.authenticated && !needsTerms))) {
     return <AuthContext.Provider value={{ enabled: session.enabled, username: session.username ?? '', role: session.role ?? '', multiUser: !!session.multi_user }}><div key={session.account_id ?? session.username ?? 'local'} className="h-full">{children}</div></AuthContext.Provider>;
   }
-  return <main className="flex min-h-screen items-center justify-center bg-paper p-6">
-    <section className="w-full max-w-[420px] rounded-panel border border-rule bg-surface p-8 shadow-e1">
+  return <main className="flex min-h-screen items-center justify-center bg-paper p-4 sm:p-6">
+    <section className="w-full max-w-[420px] rounded-panel border border-rule bg-surface p-5 sm:p-8 shadow-e1">
+      <div className="mb-6 flex justify-end"><ThemeControl /></div>
       <div className="mb-8 flex items-center gap-3"><span aria-hidden className="size-3.5 rounded-[2px] bg-seal" /><span className="text-h3 font-semibold tracking-[0.04em]">ANVAYA</span></div>
       <h1 className="mb-2 text-h1 font-semibold">{needsTerms ? 'Before you continue' : session ? (joining ? 'Create your workspace' : 'Sign in') : 'Connecting to ANVAYA'}</h1>
       <p className="mb-6 text-body text-graphite">{needsTerms ? 'Please review the terms and privacy notice for this educational pilot.' : session ? (joining ? 'Your own account, logs and collector key. For authorized testing and learning.' : 'Open your private log workspace.') : 'Checking your session…'}</p>

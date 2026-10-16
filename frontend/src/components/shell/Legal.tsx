@@ -1,3 +1,4 @@
+import { ThemeControl } from './ThemeControl';
 import { useEffect, useState } from 'react';
 import { api, type LegalNotice } from '@/lib/api';
 
@@ -13,7 +14,8 @@ export function LegalPage({ privacy }: { privacy: boolean }) {
   const [error, setError] = useState(false);
   useEffect(() => { api.legal().then(setNotice).catch(() => setError(true)); }, []);
   return <main className="min-h-screen overflow-y-auto bg-paper px-6 py-12">
-    <article className="mx-auto max-w-[760px] rounded-panel border border-rule bg-surface p-8">
+    <article className="mx-auto max-w-[760px] rounded-panel border border-rule bg-surface p-5 sm:p-8">
+      <div className="mb-5 flex justify-end"><ThemeControl /></div>
       <a href="/overview" className="text-label font-semibold text-seal">ANVAYA · Back to console</a>
       <h1 className="mt-6 text-h1 font-semibold">{privacy ? 'Privacy notice' : 'Terms & conditions'}</h1>
       {!notice && <p className="my-6" role={error ? 'alert' : undefined}>{error ? 'Could not load this notice. Reload the page to try again.' : 'Loading…'}</p>}
