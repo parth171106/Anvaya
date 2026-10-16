@@ -20,8 +20,8 @@ export function IncidentToast() {
           initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, transition: { duration: reduced ? 0.08 : 0.16, ease: [0.3, 0, 1, 1] } }}
           transition={{ duration: reduced ? 0.08 : 0.32, ease: [0.05, 0.7, 0.1, 1] }}
-          className="fixed right-6 bottom-6 z-50 w-[460px] rounded-panel border border-rule border-l-4 border-l-sev-high bg-surface p-4 shadow-e2">
-          <div className="flex items-start justify-between gap-4">
+          className="fixed right-4 bottom-4 z-50 w-[min(460px,calc(100vw-2rem))] sm:right-6 sm:bottom-6 rounded-panel border border-rule border-l-4 border-l-sev-high bg-surface p-4 shadow-e2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <p className="flex items-center gap-2 text-body-lg font-semibold text-ink">
               <Flag className="size-5 text-sev-high" aria-hidden /> High-risk incident
             </p>

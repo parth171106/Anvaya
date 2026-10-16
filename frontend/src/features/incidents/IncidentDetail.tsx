@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Play } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { DeviceChip, DeviceDot } from '@/components/badges/badges';
 import { Bone, ErrorState, Skeleton } from '@/components/common/states';
@@ -11,6 +11,8 @@ import type { EventSummary, IncidentDetail as Detail, IncidentStage } from '@/li
 import { cn } from '@/lib/utils';
 import { IncidentHeaderLine } from './IncidentList';
 import { AIExplanation } from '@/features/search/AIExplanation';
+import Investigation from './Investigation';
+import IncidentReport from './IncidentReport';
 
 const CHIPS_SHOWN = 2;
 
@@ -27,11 +29,11 @@ function RiskBreakdown({ d }: { d: Detail }) {
 function EvidenceChip({ e, onOpen }: { e: EventSummary; onOpen: (id: string) => void }) {
   return (
     <button type="button" onClick={() => onOpen(e.event_id)}
-      className="inline-flex h-10 max-w-[420px] items-center gap-2 rounded-chip border border-rule bg-surface px-2.5 text-label hover:border-ink">
-      <span className="font-mono">{timeIST(e.time)}</span>
+      className="inline-flex min-w-0 min-h-10 max-w-full sm:max-w-[420px] items-center gap-2 rounded-chip border border-rule bg-surface px-2.5 text-label hover:border-ink">
+      <span className="shrink-0 whitespace-nowrap font-mono">{timeIST(e.time)}</span>
       <DeviceDot device={e.device} />
-      <span className="font-mono">{e.device}</span>
-      <span className="truncate text-graphite">{formatEventSummary(e)}{e.class_uid === 4001 && e.dst_port != null && e.action === 'Denied' ? ` :${e.dst_port}` : ''}</span>
+      <span className="min-w-0 max-w-[100px] truncate font-mono" title={e.device}>{e.device}</span>
+      <span className="min-w-0 truncate text-graphite">{formatEventSummary(e)}{e.class_uid === 4001 && e.dst_port != null && e.action === 'Denied' ? ` :${e.dst_port}` : ''}</span>
     </button>
   );
 }
@@ -42,14 +44,14 @@ function StageGroup({ stage, isLast, events, onOpenEvent }: {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? events : events.slice(0, CHIPS_SHOWN);
   return (
-    <li className="relative grid grid-cols-[72px_1fr] gap-4 pb-6">
-      {!isLast && <span aria-hidden className="absolute top-6 bottom-0 left-[93.5px] w-px bg-rule" />}
+    <li className="relative grid grid-cols-1 gap-2 pb-6 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-4">
+      {!isLast && <span aria-hidden className="absolute top-9 bottom-0 left-[5.5px] sm:top-6 sm:left-[93.5px] w-px bg-rule" />}
       <span className="pt-0.5 font-mono text-mono text-graphite">{hhmmIST(stage.first_time)}</span>
-      <div className="relative pl-6">
+      <div className="relative min-w-0 pl-6">
         <span aria-hidden className={cn('absolute top-1.5 left-0 size-3 rounded-pill border-2 border-ink', isLast ? 'bg-ink' : 'bg-surface')} />
-        <div className="flex items-baseline justify-between gap-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <h3 className="text-h3 font-semibold">{stage.label}</h3>
-          <span className="flex items-center gap-4">
+          <span className="flex min-w-0 max-w-full flex-wrap items-center gap-4">
             {stage.devices.map((d) => <DeviceChip key={d} device={d} product={false} />)}
             <span className="w-24 text-right text-body text-graphite tabular">{plural(stage.event_count, 'event')}</span>
           </span>
@@ -90,13 +92,16 @@ export default function IncidentDetail() {
       <h1 className="mt-1 mb-3 font-display text-h1 font-semibold">{d.title}</h1>
       <IncidentHeaderLine i={d} />
       <RiskBreakdown d={d} />
+      <Link to={`/replay?incident=${encodeURIComponent(incidentId)}`} className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-control border border-rule bg-surface px-4 text-body font-medium text-seal hover:bg-paper-sunk"><Play className="size-4" aria-hidden /> Replay incident</Link>
+      <Investigation key={incidentId} incident={d} />
+      <IncidentReport key={`report-${incidentId}`} incidentId={incidentId} />
       {d.explanation && <section className="mt-4 space-y-2 rounded-panel border border-rule bg-surface p-5">
         <h2 className="text-h3 font-semibold">Why this needs attention</h2>
         <p className="text-body">{d.explanation}</p>
         <p className="text-body text-graphite">{d.recommended_action}</p>
       </section>}
       <AIExplanation key={incidentId} kind="incident" target={incidentId} />
-      <ol className="mt-6 rounded-panel border border-rule bg-surface p-6" aria-label="Incident timeline">
+      <ol className="mt-6 rounded-panel border border-rule bg-surface p-4 sm:p-6" aria-label="Incident timeline">
         {d.stages_detail.map((s, i) => (
           <StageGroup key={s.stage} stage={s} isLast={i === d.stages_detail.length - 1} onOpenEvent={(id) => navigate(`/events/${id}`)}
             events={s.event_ids.map((id) => byId.get(id)).filter((x): x is EventSummary => !!x)} />
