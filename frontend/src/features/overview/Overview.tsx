@@ -37,8 +37,8 @@ export function KpiCounter({ label, value, unit, format, hint }: KpiCounterProps
     return () => ctl.stop();
   }, [value, reduced]);
   return (
-    <div className="flex min-h-[132px] flex-col justify-between rounded-panel border border-rule bg-surface p-5">
-      <div className="text-kpi font-semibold text-ink tabular">
+    <div className="flex min-w-0 min-h-[132px] flex-col justify-between rounded-panel border border-rule bg-surface p-5">
+      <div className="break-all text-kpi font-semibold text-ink tabular">
         {shown == null ? DASH : fmt(shown, format)}{unit && shown != null && <span className="ml-1 text-h3 text-graphite">{unit}</span>}
       </div>
       <div>
@@ -107,7 +107,7 @@ function LiveActivityPanel({ stats }: { stats: Stats | null }) {
 function StartSimulationBar({ phase, onStart, pending, speed }: { phase: DemoPhase; onStart: () => void; pending: boolean; speed: number }) {
   const running = phase !== 'idle';
   return (
-    <div className="flex items-center gap-6 rounded-panel border border-rule bg-surface p-5">
+    <div className="flex flex-wrap items-center gap-4 rounded-panel border border-rule bg-surface p-5">
       <Button size="lg" onClick={onStart} disabled={running || pending} aria-live="polite">
         <Play className="size-5" aria-hidden />
         {running ? `Simulation running · ${speed}×` : 'Start attack simulation'}
@@ -144,9 +144,9 @@ export default function Overview() {
         <ErrorState title="Couldn't reach the ANVAYA service." body="Check that the api container is running."
           onRetry={() => q.refetch()} code={(q.error as Error)?.message} />
       ) : !stats ? (
-        <Skeleton><div className="grid grid-cols-5 gap-4">{[0, 1, 2, 3, 4].map((i) => <Bone key={i} className="h-[132px]" />)}</div></Skeleton>
+        <Skeleton><div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3 min-[1600px]:grid-cols-5">{[0, 1, 2, 3, 4].map((i) => <Bone key={i} className="h-[132px]" />)}</div></Skeleton>
       ) : (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3 min-[1600px]:grid-cols-5">
           <KpiCounter label="Events ingested" value={stats.raw_total} format="int" />
           <KpiCounter label="Live ingest rate (measured)" value={stats.ingest_rate_eps} unit="/s" format="rate" />
           <KpiCounter label="Formats detected" value={stats.formats_detected} format="int" />
@@ -155,7 +155,7 @@ export default function Overview() {
           <KpiCounter label="Sealed & co-signed records" value={stats.sealed_records} format="int" />
         </div>
       )}
-      <div className="grid grid-cols-[2fr_1fr] gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <LayerStrip />
         <LiveActivityPanel stats={stats} />
       </div>

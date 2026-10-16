@@ -55,7 +55,7 @@ function RetentionReportCard({ onView, onDownload, pending }: { onView: () => vo
   return (
     <Panel title="Retention report" className="h-full">
       <p className="text-body-lg">{STATEMENT}</p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="outline" onClick={onView} disabled={pending}>View report</Button>
         <Button variant="outline" onClick={onDownload} disabled={pending}>Download JSON</Button>
       </div>
@@ -73,7 +73,7 @@ function download(report: RetentionReport) {
 function RetentionReportSheet({ report, open, onOpenChange }: { report: RetentionReport | undefined; open: boolean; onOpenChange: (o: boolean) => void }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[640px] sm:max-w-[640px] bg-surface p-6">
+      <SheetContent className="w-full max-w-[640px] sm:max-w-[640px] bg-surface p-5 sm:p-6">
         <SheetHeader className="p-0">
           <SheetTitle className="font-display text-h1 font-semibold">Retention report</SheetTitle>
           <SheetDescription className="text-body-lg text-ink">{report?.statement ?? STATEMENT}</SheetDescription>
@@ -81,7 +81,7 @@ function RetentionReportSheet({ report, open, onOpenChange }: { report: Retentio
         {report && (
           <div className="mt-4 space-y-4 text-body">
             <p className="text-graphite">Retention target {report.retention_target_days} days · generated {dateTimeIST(report.generated)}</p>
-            <table className="w-full border-collapse">
+            <div className="overflow-x-auto" tabIndex={0} aria-label="Retention records"><table className="min-w-[560px] w-full border-collapse">
               <thead><tr className="text-left text-label font-medium text-graphite">
                 {['Device', 'Oldest', 'Newest', 'Records', 'Sealed'].map((h) => <th key={h} scope="col" className="h-10 pr-3">{h}</th>)}
               </tr></thead>
@@ -96,7 +96,7 @@ function RetentionReportSheet({ report, open, onOpenChange }: { report: Retentio
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <p>Ledger: {report.ledger.verdict ? `${report.ledger.verdict} · last verified ${dateTimeIST(report.ledger.last_verified)}` : 'not verified yet'}</p>
             <p className="text-label text-graphite">{report.note}</p>
           </div>
@@ -116,11 +116,11 @@ export default function Delivery() {
     <div>
       <PageHeader title="Delivery" subtitle="Outputs for the SIEM, the data lake and auditors" />
       {status.isPending ? (
-        <Skeleton><div className="grid grid-cols-3 gap-6">{[0, 1, 2].map((i) => <Bone key={i} className="h-64" />)}</div></Skeleton>
+        <Skeleton><div className="grid grid-cols-1 gap-6 xl:grid-cols-3">{[0, 1, 2].map((i) => <Bone key={i} className="h-64" />)}</div></Skeleton>
       ) : status.isError ? (
         <ErrorState title="Couldn't load delivery status." body="Check that the api container is running." onRetry={() => status.refetch()} />
       ) : (
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <SiemForwarderCard status={status.data.siem} />
           <ParquetExportCard lastExport={last} onExport={() => exp.mutate()} pending={exp.isPending} error={exp.isError} />
           <RetentionReportCard pending={report.isFetching}

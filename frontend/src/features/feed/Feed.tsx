@@ -17,7 +17,8 @@ import { useFeedStore, useSourcesStore, useStatsStore, useStreamStore } from '@/
 import { entryOf, type FeedEntry } from '@/state/feed';
 
 const ROW_H = 48;
-// The brief's widths at 1920 (120/150/160/≥360/360/110/80 px); they shrink to fit a 1280 px window without scrolling.
+const HEADER_H = 44;
+// Keep evidence columns readable; header and virtual rows share one horizontal scroller.
 const COLS = 'grid grid-cols-[minmax(96px,120px)_minmax(110px,150px)_minmax(140px,160px)_minmax(200px,1fr)_minmax(250px,360px)_minmax(90px,110px)_minmax(56px,80px)] items-center gap-3 px-4';
 
 const FeedRow = memo(function FeedRow({ r, isNew, onSelect }: { r: FeedEntry; isNew: boolean; onSelect: (id: string) => void }) {
@@ -48,10 +49,12 @@ const FeedRow = memo(function FeedRow({ r, isNew, onSelect }: { r: FeedEntry; is
 function LiveFeedTable({ rows, fresh, onSelect }: { rows: FeedEntry[]; fresh: Set<string>; onSelect: (id: string) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   const v = useVirtualizer({ count: rows.length, getScrollElement: () => scroller.current, estimateSize: () => ROW_H,
-    overscan: 12, getItemKey: (i) => rows[i].id });
+    scrollMargin: HEADER_H, overscan: 12, getItemKey: (i) => rows[i].id });
   return (
-    <div role="table" aria-label="Live feed" aria-live="off" className="rounded-panel border border-rule bg-surface">
-      <div role="row" className={cn(COLS, 'h-11 border-b border-rule text-label font-medium text-graphite')}>
+    <div ref={scroller} role="table" aria-label="Live feed" aria-live="off"
+      className="h-[60dvh] min-h-[300px] overflow-auto rounded-panel border border-rule bg-surface" tabIndex={0}>
+      <div className="min-w-[1120px]">
+      <div role="row" className={cn(COLS, 'sticky top-0 z-10 h-11 border-b border-rule bg-surface text-label font-medium text-graphite')}>
         <span role="columnheader">Time IST</span><span role="columnheader">Device</span>
         <span role="columnheader">Format</span><span role="columnheader">Event</span>
         <span role="columnheader">Source → Destination</span><span role="columnheader">Action</span>
@@ -60,14 +63,15 @@ function LiveFeedTable({ rows, fresh, onSelect }: { rows: FeedEntry[]; fresh: Se
           <TooltipContent>Parse confidence (0–100)</TooltipContent>
         </Tooltip>
       </div>
-      <div ref={scroller} className="h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto" role="rowgroup">
+      <div role="rowgroup">
         <div style={{ height: v.getTotalSize(), position: 'relative' }}>
           {v.getVirtualItems().map((it) => (
-            <div key={it.key} style={{ position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${it.start}px)` }}>
+            <div key={it.key} style={{ position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${it.start - HEADER_H}px)` }}>
               <FeedRow r={rows[it.index]} isNew={fresh.has(rows[it.index].id)} onSelect={onSelect} />
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -77,9 +81,9 @@ function DeviceFilterChips({ sources, selected, onToggle }: { sources: SourceInf
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by device">
       {sources.map((s) => (
-        <span key={s.device} className="inline-flex items-center gap-2">
+        <span key={s.device} className="inline-flex max-w-full flex-wrap items-center gap-2">
           <button type="button" aria-pressed={selected === s.device} onClick={() => onToggle(s.device)}
-            className={cn('inline-flex h-10 items-center gap-2 rounded-pill border px-3 transition-colors duration-fast',
+            className={cn('inline-flex max-w-full min-h-10 items-center gap-2 rounded-pill border px-3 transition-colors duration-fast',
               selected === s.device ? 'border-ink bg-paper-sunk' : 'border-rule bg-surface hover:border-ink')}>
             <DeviceChip device={s.device} />
           </button>

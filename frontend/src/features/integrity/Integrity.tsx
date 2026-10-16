@@ -55,7 +55,7 @@ function VerifySummary({ result, fingerprint }: { result: LedgerVerifyResult | n
 
 function TamperDiff({ failure, onOpenEvent }: { failure: FailedRecord; onOpenEvent: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-int-tampered-bg px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-4 bg-int-tampered-bg px-4 py-3">
       <p className="font-mono text-mono">
         └ {failure.raw_id} · {failure.device ?? '—'} · {timeIST(failure.time)} · byte {failure.first_diff_offset ?? '—'} changed{' '}
         {failure.changed ? `'${failure.changed.from}' → '${failure.changed.to}'` : '—'} ({failure.field ?? '—'})
@@ -135,7 +135,7 @@ function DemoIntegrityControls() {
   const { demoMode, tampered, resealed, tamper, reseal } = useDemoStore();
   if (!demoMode) return null;
   return (
-    <div className="flex items-center gap-3" role="group" aria-label="Demo controls (synthetic)">
+    <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Demo controls (synthetic)">
       <span className="text-label text-graphite">Demo controls (synthetic)</span>
       <Button variant="outline" onClick={() => void tamper()} disabled={tampered}>Simulate tamper</Button>
       <Button variant="outline" onClick={() => void reseal()} disabled={!tampered || resealed}>Simulate insider re-seal</Button>
@@ -169,7 +169,7 @@ export default function Integrity() {
       ) : (
         <VerifySummary result={lastVerify} fingerprint={batches.data?.primary_key_fingerprint ?? ''} />
       )}
-      <div className="grid grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] [&>section]:min-w-0">
         <section>
           <h2 className="mb-3 text-h2 font-semibold">Ledger batches</h2>
           {batches.isPending ? <Skeleton><div className="space-y-2">{Array.from({ length: 8 }, (_, i) => <Bone key={i} className="h-11" />)}</div></Skeleton>
