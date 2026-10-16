@@ -45,9 +45,11 @@ export interface DraftTestResult { draft_id: string; promotable: boolean; holdou
   all: { passed: number; total: number }; roundtrip: { passed: number; total: number; min_coverage: number };
   ocsf_valid: { passed: number; total: number }; failures: { index: number; check: string; detail: string }[];
   samples: { index: number; raw: string; ocsf: Record<string, unknown>; lineage: LineageEntry[] }[]; }
+export interface IncidentWorkflow { state: 'new' | 'investigating' | 'resolved'; controlled_test: boolean; version: number; }
+export interface IncidentActivity { id: number; at: number; actor: string; state: IncidentWorkflow['state']; controlled_test: boolean; note: string; }
 export interface IncidentSummary { incident_id: string; title: string; attacker_ip: string; target_ip: string | null; risk: number;
   level: 'Low' | 'Medium' | 'High'; stages: ('recon' | 'credential' | 'access')[]; devices: DeviceId[]; event_count: number;
-  first_time: number; last_time: number; status: 'open' | 'closed'; }
+  first_time: number; last_time: number; status: 'open' | 'closed'; workflow?: IncidentWorkflow; }
 export interface IncidentStage { stage: 'recon' | 'credential' | 'access'; label: string; first_time: number; last_time: number;
   devices: DeviceId[]; event_count: number; headline: string; event_ids: string[]; }
 export interface Stats { raw_total: number; normalized_total: number; quarantined_total: number; formats_detected: number;
@@ -68,7 +70,7 @@ export type ComponentStatus = { status: string; detail?: string; ok_count?: numb
 export interface Health { status: 'ok' | 'degraded'; demo_mode: boolean; version: string; components: Record<string, ComponentStatus>; }
 export interface DemoState { demo_mode: boolean; phase?: DemoPhase; speed?: 10 | 20 | 40; silenced?: string[]; tampered?: boolean;
   resealed?: boolean; unknown_injected?: boolean; send_errors?: number; clock?: { now_ms: number; label: string }; reset?: boolean; }
-export interface IncidentDetail extends IncidentSummary { explanation?: string; recommended_action?: string; stages_detail: IncidentStage[]; risk_breakdown: { stages: number; devices: number; ordered: number }; events: EventSummary[]; }
+export interface IncidentDetail extends IncidentSummary { activity?: IncidentActivity[]; explanation?: string; recommended_action?: string; stages_detail: IncidentStage[]; risk_breakdown: { stages: number; devices: number; ordered: number }; events: EventSummary[]; }
 export interface ParserInfo { name: string; version: string; status: string; origin: 'builtin' | 'ai_draft' | 'user'; format: FormatId;
   approved_by: string | null; approved_at: number | null; roundtrip_pass_rate: number | null; events_parsed: number; }
 export interface ParserDraft { draft_id: string; group_id: string; status: 'drafted' | 'tested' | 'approved' | 'rejected';

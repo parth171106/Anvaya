@@ -1,6 +1,6 @@
 // Typed client for every endpoint in TRD.md §16. The frontend talks to the backend only through this module.
 import type {
-  DeliveryStatus, DemoState, DraftTestResult, EventDetail, EventSummary, Health, IncidentDetail, IncidentSummary,
+  DeliveryStatus, DemoState, DraftTestResult, EventDetail, EventSummary, Health, IncidentDetail, IncidentSummary, IncidentWorkflow,
   LedgerBatch, LedgerVerifyResult, ParquetExport, ParserDraft, ParserInfo, QuarantineGroup, RecordVerifyResult,
   RetentionReport, SearchResult, SourceInfo, Stats, TamperInfo, WitnessInfo,
 } from './types';
@@ -116,6 +116,20 @@ export const api = {
   incidents: {
     list: () => get<{ items: IncidentSummary[] }>('/incidents'),
     get: (id: string) => get<IncidentDetail>(`/incidents/${id}`),
+    investigate: (id: string, body: IncidentWorkflow & { note: string }) => post<IncidentDetail>(`/incidents/${id}/investigation`, body),
+    report: async (id: string, verify: boolean): Promise<Blob> => {
+      const response = await fetch(`${BASE}/incidents/${encodeURIComponent(id)}/report`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Anvaya-Request': 'console' },
+        body: JSON.stringify({ verify }),
+      });
+      if (!response.ok) {
+        if (response.status === 401) window.dispatchEvent(new Event('anvaya:unauthorized'));
+        const error = await response.json().catch(() => null);
+        throw new ApiError(response.status, error?.error?.code ?? 'http_error',
+          error?.error?.message ?? 'Could not generate the report. Please retry.');
+      }
+      return response.blob();
+    },
   },
   search: {
     ask: (question: string, options: { use_ai?: boolean; consent?: boolean; previous_id?: string } = {}) => post<SearchResult>('/search', { question, ...options }),
