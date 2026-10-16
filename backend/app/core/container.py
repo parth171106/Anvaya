@@ -4,7 +4,7 @@ import logging
 import time
 
 from app.aiparser.drafts import DraftService
-from app.aiparser.sources import CachedDraftSource, LlmDraftSource
+from app.aiparser.sources import CachedDraftSource, LiveDraftSource
 from app.core.clock import ScenarioClock, WallClock
 from app.core.config import Config
 from app.core.models import NormalizedEvent, RawMeta, RawRecord
@@ -76,10 +76,10 @@ class Container:
         self.event_hooks = [self.correlator.on_batch, self.silence.on_events, self.siem.on_batch]
         self.search = SearchService(self.repo, self.llm, self.clock, self.cfg)
         self.assistant = AssistantService(self)
-        self.drafts = DraftService(self, CachedDraftSource() if self.cfg.demo_mode else LlmDraftSource(self.llm))
+        self.drafts = DraftService(self, CachedDraftSource() if self.cfg.demo_mode else LiveDraftSource(self.llm))
         with self.repo.tx():
             for p in self.registry.packs:
-                self.repo.upsert_parser(p, "builtin" if p.origin == "builtin" else "ai_draft")
+                self.repo.upsert_parser(p, p.origin if p.origin in {"builtin", "user"} else "ai_draft")
         pending = self.repo.pending_raw_ids()
         for raw_id in pending:
             self.queue.put_nowait(raw_id)
