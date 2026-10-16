@@ -33,8 +33,8 @@ const PRODUCT_LABEL: Record<string, string> = { Cisco: 'Cisco · ASA', OISF: 'OI
 
 function SourcesTable({ sources, history }: { sources: SourceInfo[]; history: Record<string, number[]> }) {
   return (
-    <div className="rounded-panel border border-rule bg-surface">
-      <table className="w-full border-collapse text-body">
+    <div className="overflow-x-auto rounded-panel border border-rule bg-surface" tabIndex={0} aria-label="Source details">
+      <table className="w-full min-w-[900px] border-collapse text-body">
         <thead><tr className="text-left text-label font-medium text-graphite">
           {['Device', 'Vendor · product', 'Format', 'Parser', 'Events', 'Rate', 'Status'].map((h) => <th key={h} scope="col" className="h-11 px-4">{h}</th>)}
         </tr></thead>
@@ -60,7 +60,7 @@ function QuarantineGroupCard({ group, onDraft, draftPending }: { group: Quaranti
   const shape = group.shape_label.split(' · ').slice(1).join(' · ');
   return (
     <div className="rounded-panel border border-rule bg-surface p-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="flex items-center gap-2 text-h3 font-semibold">
             <AlertTriangle className="size-5 text-st-warn" aria-hidden /> Unrecognised source · {group.count} records
@@ -77,8 +77,8 @@ function QuarantineGroupCard({ group, onDraft, draftPending }: { group: Quaranti
 
 function ParsersTable({ parsers }: { parsers: ParserInfo[] }) {
   return (
-    <div className="rounded-panel border border-rule bg-surface">
-      <table className="w-full border-collapse text-body">
+    <div className="overflow-x-auto rounded-panel border border-rule bg-surface" tabIndex={0} aria-label="Source details">
+      <table className="w-full min-w-[900px] border-collapse text-body">
         <thead><tr className="text-left text-label font-medium text-graphite">
           {['Parser', 'Status', 'Origin', 'Format', 'Approved', 'Round-trip pass', 'Events parsed'].map((h) => <th key={h} scope="col" className="h-11 px-4">{h}</th>)}
         </tr></thead>
@@ -87,7 +87,7 @@ function ParsersTable({ parsers }: { parsers: ParserInfo[] }) {
             <tr key={`${p.name}@${p.version}`} className="h-12 border-t border-rule">
               <td className="px-4 font-mono text-mono">{p.name}@{p.version}</td>
               <td className="px-4 capitalize">{p.status}</td>
-              <td className="px-4">{p.origin === 'builtin' ? 'Built in' : p.origin === 'ai_draft' ? 'AI draft, approved' : 'User'}</td>
+              <td className="px-4">{p.origin === 'builtin' ? 'Built in' : p.origin === 'ai_draft' ? 'AI draft, approved' : 'Hand-authored / user'}</td>
               <td className="px-4"><FormatChip format={p.format} /></td>
               <td className="px-4">{p.approved_by ? `${p.approved_by} · ${dateTimeIST(p.approved_at)}` : DASH}</td>
               <td className="px-4 tabular">{p.roundtrip_pass_rate == null ? DASH : `${Math.round(p.roundtrip_pass_rate * 100)}%`}</td>
@@ -138,10 +138,10 @@ export default function Sources() {
     <div>
       <PageHeader title="Sources & parsers" subtitle="Device health, quarantine and parser onboarding" />
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })}>
-        <TabsList className="mb-4 h-11 rounded-control bg-paper-sunk p-1">
-          <TabsTrigger value="devices" className="h-9 px-4 text-body">Devices</TabsTrigger>
-          <TabsTrigger value="quarantine" className="h-9 px-4 text-body">Quarantine ({qTotal})</TabsTrigger>
-          <TabsTrigger value="parsers" className="h-9 px-4 text-body">Parsers</TabsTrigger>
+        <TabsList className="mb-4 h-auto max-w-full flex-wrap rounded-control bg-paper-sunk p-1">
+          <TabsTrigger value="devices" className="min-h-10 px-3 text-body">Devices</TabsTrigger>
+          <TabsTrigger value="quarantine" className="min-h-10 px-3 text-body">Quarantine ({qTotal})</TabsTrigger>
+          <TabsTrigger value="parsers" className="min-h-10 px-3 text-body">Parsers</TabsTrigger>
         </TabsList>
         <TabsContent value="devices">
           {sources.isPending ? <Skeleton><div className="space-y-2">{[0, 1, 2, 3].map((i) => <Bone key={i} className="h-12" />)}</div></Skeleton>

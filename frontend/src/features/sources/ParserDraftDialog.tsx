@@ -24,7 +24,7 @@ const CHECKS: { key: keyof Pick<DraftTestResult, 'holdout' | 'all' | 'roundtrip'
 export function DraftOriginLabel({ origin, model, generatedAt }: { origin: ParserDraft['origin']; model: string | null; generatedAt: number | null }) {
   const text = origin === 'llm_live' ? `Drafted by local LLM (live) · ${model}`
     : origin === 'llm_cached' ? `Drafted by local LLM (cached run) · ${model} · generated ${dateTimeIST(generatedAt)}`
-      : 'Hand-authored draft';
+      : 'Hand-authored parser template · not AI-generated. Run the checks before approving.';
   return <p className="text-body text-graphite">{text}</p>;
 }
 
@@ -101,7 +101,7 @@ export function ParserDraftDialog({ draftId, shape, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[900px] max-w-[94vw] overflow-y-auto rounded-dialog sm:max-w-[900px]">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[900px] overflow-y-auto rounded-dialog sm:max-w-[900px]">
         <DialogTitle className="text-h2 font-semibold">Parser draft for {shape}</DialogTitle>
         <DialogDescription asChild>
           <div>{d ? <DraftOriginLabel origin={d.origin} model={d.model} generatedAt={d.generated_at} /> : <span className="text-body">Loading draft…</span>}</div>
@@ -110,7 +110,7 @@ export function ParserDraftDialog({ draftId, shape, open, onOpenChange }: {
           <ErrorState title="Couldn't load the draft." onRetry={() => draft.refetch()} />
         ) : (
           <>
-            <div className="grid grid-cols-[1fr_300px] gap-4">
+            <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(0,1fr)_300px] [&>*]:min-w-0">
               <pre aria-label="Draft YAML (read-only)"
                 className="h-[300px] overflow-auto rounded-panel border border-rule bg-paper-sunk p-3 font-mono text-mono">{d?.yaml ?? ''}</pre>
               <div>
@@ -129,7 +129,7 @@ export function ParserDraftDialog({ draftId, shape, open, onOpenChange }: {
               Approving activates {d ? `${(d.yaml.match(/^name:\s*(\S+)/m)?.[1] ?? 'the parser')}@${d.yaml.match(/^version:\s*(\S+)/m)?.[1] ?? '1.0.0'}` : 'the parser'} and
               replays {d ? d.train_count + d.holdout_count : 20} quarantined records. This is recorded in the audit log.
             </p>
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <Button variant="ghost" onClick={() => reject.mutate()} disabled={approved || reject.isPending}>Reject draft</Button>
               <Button variant="outline" onClick={() => test.mutate()} disabled={!draftId || test.isPending || approved}>
                 {test.isPending ? 'Running tests…' : 'Run tests'}

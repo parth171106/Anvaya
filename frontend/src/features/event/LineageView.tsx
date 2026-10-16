@@ -8,9 +8,9 @@ import { useLineageStore } from '@/state';
 
 export const WRAP = 64;
 const WRAP_COMPACT = 40;
-const WRAP_MIN = 32;
+const WRAP_MIN = 16;
 
-/** Characters per line: the brief's 64 when the pane is wide enough, fewer in narrower windows (never below 32). */
+/** Characters per line: the brief's 64 when the pane is wide enough, fewer in narrower windows (never below 16). */
 function useWrap(ref: React.RefObject<HTMLDivElement | null>, max: number): number {
   const [wrap, setWrap] = useState(max);
   useLayoutEffect(() => {
@@ -67,7 +67,7 @@ export function RawBytesPane({ text, activeSpans, color, tamperChar, onHoverChar
   }, [text, wrap]);
   const inSpan = (c: number) => activeSpans.some(([s, t]) => s <= c && c < t);
   return (
-    <div ref={rootRef} className={cn('relative font-mono text-ink', compact ? 'text-mono' : 'text-mono-lg')} onMouseLeave={() => onHoverChar(null)}>
+    <div ref={rootRef} className={cn('relative min-w-0 overflow-x-auto font-mono text-ink', compact ? 'text-mono' : 'text-mono-lg')} onMouseLeave={() => onHoverChar(null)}>
       {!compact && (
         <div aria-hidden className="relative h-4 select-none" style={{ width: `${wrap}ch` }}>
           {[0, 10, 20, 30, 40, 50, 60].filter((n) => n < wrap).map((n) => (
@@ -125,8 +125,8 @@ function OcsfFieldList({ fields, active, pinned, tamper, onHover, onPin, rowRefs
             onKeyDown={(e) => { if (e.key === 'Enter') onPin(pinned === f.path ? null : f.path); }}
             className={cn('grid cursor-pointer grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_20px] items-baseline gap-3 rounded-control px-2 py-0.5 transition-colors duration-base',
               isActive ? 'bg-paper-sunk' : 'hover:bg-paper-sunk/60', pinned === f.path && 'outline outline-1 outline-ink')}>
-            <span className="truncate font-mono text-mono" style={{ color: traceable ? c.fg : 'var(--graphite)' }}>{f.path}</span>
-            <span className="truncate font-mono text-mono-lg text-ink">
+            <span title={f.path} className="truncate font-mono text-mono" style={{ color: traceable ? c.fg : 'var(--graphite)' }}>{f.path}</span>
+            <span title={String(f.value)} className="truncate font-mono text-mono-lg text-ink">
               {String(f.value)}
               {tamper && tamper.field === f.path && (
                 <span className="ml-2 rounded-chip bg-int-tampered-bg px-1.5 font-ui text-label font-medium text-int-tampered">
@@ -149,7 +149,7 @@ function LineageConnector({ from, to, color }: { from: DOMRect | null; to: DOMRe
   const dx = Math.max(24, (x1 - x2) / 2);
   const d = `M ${x1} ${y1} C ${x1 - dx} ${y1}, ${x2 + dx} ${y2}, ${x2} ${y2}`;
   return (
-    <svg aria-hidden className="pointer-events-none fixed inset-0 z-10 h-full w-full overflow-visible">
+    <svg aria-hidden className="hidden xl:block pointer-events-none fixed inset-0 z-10 h-full w-full overflow-visible">
       <path key={d} d={d} fill="none" stroke={color} strokeWidth={1.5} pathLength={1} className="lineage-draw" />
       <circle cx={x2} cy={y2} r={3} fill={color} />
     </svg>
@@ -222,7 +222,7 @@ export function LineageView({ rawText, rawBytesLength, ocsf, lineage, tamper = n
 
   return (
     <div>
-      <div className={cn('grid grid-cols-2 gap-6', compact && 'gap-4')}>
+      <div className={cn('grid grid-cols-1 gap-6 xl:grid-cols-2', compact && 'gap-4')}>
         <section className="min-w-0 rounded-panel border border-rule bg-surface p-5">
           {!compact && <h2 className="mb-3 text-h3 font-semibold">Original bytes, as received ({rawBytesLength} bytes)</h2>}
           <div className="rounded-control bg-paper-sunk p-4">
@@ -237,7 +237,7 @@ export function LineageView({ rawText, rawBytesLength, ocsf, lineage, tamper = n
         </section>
         <section className="min-w-0 rounded-panel border border-rule bg-surface p-5">
           {!compact && (
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-h3 font-semibold">Normalized record · OCSF {version}</h2>
               <button type="button" className="text-label font-medium text-seal hover:underline" onClick={() => setShowMeta((v) => !v)}>
                 {showMeta ? 'Hide metadata' : 'Show metadata'}
@@ -251,7 +251,7 @@ export function LineageView({ rawText, rawBytesLength, ocsf, lineage, tamper = n
         </section>
       </div>
       {!compact && (
-        <div className="mt-3 flex items-center justify-between text-body text-graphite">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-body text-graphite">
           <span>Hover any field to see the exact bytes it came from. Click to pin.</span>
           <span>● mapped directly · ◇ derived · ○ kept unmapped</span>
         </div>

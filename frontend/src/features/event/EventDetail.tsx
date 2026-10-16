@@ -51,7 +51,7 @@ function HashBlock({ sha }: { sha: string }) {
   const groups = sha.match(/.{1,4}/g) ?? [];
   const short = [...groups.slice(0, 4), '…', ...groups.slice(-3)].join(' ');
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex max-w-full flex-wrap items-center gap-2">
       <span className="text-label font-medium text-graphite">SHA-256</span>
       <span className="font-mono text-mono" title={sha}>{short}</span>
       <Button variant="ghost" size="icon" aria-label="Copy SHA-256"
@@ -104,7 +104,7 @@ function VerifyRecordButton({ rawId, onResult }: { rawId: string; onResult: (r: 
   });
   useEffect(() => () => clearTimeout(timer.current), []);
   return (
-    <div className="flex min-h-11 items-center gap-4">
+    <div className="flex max-w-full min-h-11 flex-wrap items-center gap-4">
       <Button variant="outline" onClick={() => { tries.current = 0; m.mutate(); }} disabled={m.isPending}>
         {m.isPending ? 'Verifying…' : 'Verify this record'}
       </Button>
@@ -145,7 +145,7 @@ export default function EventDetail() {
   const [record, setRecord] = useState<RecordVerifyResult | null>(null);
 
   if (q.isPending) {
-    return <Skeleton><Bone className="mb-6 h-20 w-[640px]" /><div className="grid grid-cols-2 gap-6"><Bone className="h-[520px]" /><Bone className="h-[520px]" /></div></Skeleton>;
+    return <Skeleton><Bone className="mb-6 h-20 w-[640px]" /><div className="grid grid-cols-1 gap-6 xl:grid-cols-2"><Bone className="h-[520px]" /><Bone className="h-[520px]" /></div></Skeleton>;
   }
   if (q.isError) {
     const notFound = q.error instanceof ApiError && q.error.status === 404;
