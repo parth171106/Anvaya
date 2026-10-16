@@ -3,6 +3,7 @@ annotated-types==0.8.0
 anyio==4.15.1
 attrs==26.1.0
 certifi==2026.7.22
+charset-normalizer==3.5.2
 cffi==2.1.1
 click==8.5.0
 cryptography==50.0.2
@@ -17,6 +18,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 opentelemetry-api==1.45.0
 packaging==26.3
+pillow==12.3.0
 pyarrow==25.0.1
 pycparser==3.0
 pydantic==2.13.5
@@ -25,6 +27,7 @@ python-dotenv==1.2.4
 PyYAML==6.0.3
 referencing==0.37.0
 regex==2026.9.29
+reportlab==4.4.9
 rpds-py==2026.6.3
 sqlglot==30.21.0
 starlette==1.7.0

@@ -19,10 +19,11 @@ dependencies = [
   "pyarrow",
   "tzdata",
   "regex",
+  "reportlab==4.4.9",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "ruff"]
+dev = ["pytest", "pytest-asyncio", "ruff", "pypdf==6.10.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
