@@ -64,7 +64,7 @@ export function PresenterPanel() {
   );
   return (
     <aside aria-label="Presenter controls"
-      className="fixed bottom-4 left-4 z-40 w-[320px] rounded-dialog border border-rule bg-surface p-4 text-label shadow-e2">
+      className="fixed bottom-4 left-4 z-40 w-[min(320px,calc(100vw-2rem))] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-dialog border border-rule bg-surface p-4 text-label shadow-e2">
       <h2 className="mb-2 text-h3 font-semibold">Presenter</h2>
       {armed && <p role="status" className="mb-2 rounded-control bg-seal-tint px-2 py-1 font-medium text-seal">Press 0 again to reset</p>}
       <dl className="space-y-1">

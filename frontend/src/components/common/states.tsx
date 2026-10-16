@@ -8,12 +8,12 @@ export function PageHeader({ title, subtitle, display = false, children }: {
   title: string; subtitle?: ReactNode; display?: boolean; children?: ReactNode;
 }) {
   return (
-    <header className="mb-6 flex items-end justify-between gap-6">
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
       <div className="min-w-0">
         <h1 className={cn('font-display font-semibold text-ink', display ? 'text-display' : 'text-h1')}>{title}</h1>
         {subtitle && <p className="mt-1 text-body-lg text-graphite">{subtitle}</p>}
       </div>
-      {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
+      {children && <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">{children}</div>}
     </header>
   );
 }
@@ -22,9 +22,9 @@ export function Panel({ title, children, className, actions }: {
   title?: ReactNode; children: ReactNode; className?: string; actions?: ReactNode;
 }) {
   return (
-    <section className={cn('rounded-panel border border-rule bg-surface p-5', className)}>
+    <section className={cn('min-w-0 rounded-panel border border-rule bg-surface p-4 sm:p-5', className)}>
       {(title || actions) && (
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           {title && <h2 className="text-h2 font-semibold text-ink">{title}</h2>}
           {actions}
         </div>
@@ -53,14 +53,14 @@ export function ErrorState({ title, body, onRetry, code, retryLabel = 'Retry', c
   title: string; body?: string; onRetry?: () => void; code?: string; retryLabel?: string; className?: string;
 }) {
   return (
-    <div role="alert" className={cn('flex items-start gap-4 rounded-panel border border-st-down bg-surface p-5', className)}>
+    <div role="alert" className={cn('flex flex-wrap items-start gap-4 rounded-panel border border-st-down bg-surface p-5', className)}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span tabIndex={code ? 0 : -1} className="mt-0.5"><AlertTriangle className="size-6 text-st-down" aria-hidden /></span>
         </TooltipTrigger>
         {code && <TooltipContent>{code}</TooltipContent>}
       </Tooltip>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <h3 className="text-h3 font-semibold text-ink">{title}</h3>
         {body && <p className="mt-1 text-body text-graphite">{body}</p>}
       </div>
@@ -81,7 +81,7 @@ export function useDelayed(active: boolean, ms = 150): boolean {
 }
 
 export function Bone({ className }: { className?: string }) {
-  return <div aria-hidden className={cn('skeleton-shimmer rounded-control', className)} />;
+  return <div aria-hidden className={cn('skeleton-shimmer max-w-full rounded-control', className)} />;
 }
 
 export function Skeleton({ show = true, children }: { show?: boolean; children: ReactNode }) {

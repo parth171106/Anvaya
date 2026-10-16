@@ -12,10 +12,10 @@ export function DeviceDot({ device, className }: { device: string; className?: s
 
 export function DeviceChip({ device, product = true }: { device: string; product?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+    <span className="inline-flex min-w-0 max-w-full items-center gap-2" title={device}>
       <DeviceDot device={device} />
-      <span className="font-mono text-mono text-ink">{device}</span>
-      {product && PRODUCT[device] && <span className="text-label text-graphite">{PRODUCT[device]}</span>}
+      <span className="min-w-0 truncate font-mono text-mono text-ink">{device}</span>
+      {product && PRODUCT[device] && <span className="shrink-0 text-label text-graphite">{PRODUCT[device]}</span>}
     </span>
   );
 }
@@ -23,9 +23,9 @@ export function DeviceChip({ device, product = true }: { device: string; product
 export function FormatChip({ format }: { format: string }) {
   const { label, color } = formatChip(format);
   return (
-    <span className="inline-flex items-center whitespace-nowrap rounded-chip border bg-surface px-1.5 font-mono text-chip"
-      style={{ color, borderColor: color }}>
-      {label}
+    <span className="inline-flex min-w-0 max-w-full items-center rounded-chip border bg-surface px-1.5 font-mono text-chip"
+      title={label} style={{ color, borderColor: color }}>
+      <span className="truncate">{label}</span>
     </span>
   );
 }
