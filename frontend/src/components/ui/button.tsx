@@ -5,21 +5,21 @@ import { cn } from '@/lib/utils';
 
 // Buttons: 15 px label, ≥ 40 px targets, the global 2 px seal focus ring (UI_UX_BRIEF.md §2.6, §10).
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-control text-body font-medium whitespace-nowrap transition-colors duration-fast ease-standard disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-control text-body font-medium whitespace-normal text-center max-w-full transition-colors duration-fast ease-standard disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: 'bg-seal text-on-ink hover:bg-seal-hover',
-        destructive: 'bg-int-tampered text-on-ink hover:bg-int-tampered/90',
+        default: 'bg-seal text-on-seal hover:bg-seal-hover',
+        destructive: 'bg-int-tampered text-on-danger hover:bg-int-tampered/90',
         outline: 'border border-rule bg-surface text-ink hover:bg-paper-sunk',
         secondary: 'bg-paper-sunk text-ink hover:bg-rule/60',
         ghost: 'text-ink hover:bg-paper-sunk',
         link: 'text-seal underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-10 px-4 has-[>svg]:px-3',
-        sm: 'h-10 gap-1.5 px-3',
-        lg: 'h-11 px-6',
+        default: 'min-h-10 h-auto py-2 px-4 has-[>svg]:px-3',
+        sm: 'min-h-10 h-auto py-2 gap-1.5 px-3',
+        lg: 'min-h-11 h-auto py-2 px-6',
         icon: 'size-10',
       },
     },
