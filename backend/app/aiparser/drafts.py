@@ -36,6 +36,9 @@ def run_gates(yaml_text: str, lines: list[str], holdout, enums, validate) -> dic
         if out.event is None:
             failures.append({"index": i, "check": "parse", "detail": f"{out.reason}: {out.detail}"})
             continue
+        if out.event.anvaya.confidence_breakdown["typed"] < 1:
+            failures.append({"index": i, "check": "parse", "detail": "A declared IP or integer field is invalid"})
+            continue
         parse_ok.add(i)
         rt = out.event.anvaya.roundtrip
         coverages.append(rt.coverage)
@@ -90,9 +93,11 @@ class DraftService:
         groups = {g["group_id"]: g for g in repo.quarantine_groups()}
         if group_id not in groups:
             raise DraftError(404, "not_found", "Quarantine group not found")
-        if repo.con.execute("SELECT 1 FROM parser_drafts WHERE group_id=? AND status IN ('drafted','tested')",
-                            (group_id,)).fetchone():
-            raise DraftError(409, "conflict", "A draft already exists for this group")
+        existing = repo.con.execute("SELECT draft_id FROM parser_drafts WHERE group_id=? "
+                                    "AND status IN ('drafted','tested') ORDER BY created_at DESC LIMIT 1",
+                                    (group_id,)).fetchone()
+        if existing:
+            return self.view(existing["draft_id"])
         lines = self._lines(group_id)
         hold = [i for i in HOLDOUT if i < len(lines)]
         train = [ln for i, ln in enumerate(lines) if i not in hold]
@@ -128,7 +133,7 @@ class DraftService:
         c.registry.reload()
         now = c.clock.now_ms()
         with c.repo.tx():
-            c.repo.upsert_parser(pack, "ai_draft", approved_by, now)
+            c.repo.upsert_parser(pack, "user" if r["origin"] == "hand_authored" else "ai_draft", approved_by, now)
             c.repo.con.execute("UPDATE parser_drafts SET status='approved', decided_by=?, decided_at=? WHERE draft_id=?",
                                (approved_by, now, draft_id))
             c.repo.audit(now, approved_by, "parser.approve", pack.id, {"draft_id": draft_id, "group_id": r["group_id"]})
