@@ -48,10 +48,17 @@ class LedgerVerifyResult(BaseModel):
     failed_batches: list[dict]          # {"batch_id": int, "reason": "leaf_mismatch"|"root_mismatch"|"chain_break"|"bad_signature"}
     witness_status: list[dict]          # {"name": str, "agree": bool, "mismatched_batches": list[int]}
 
+class IncidentWorkflow(BaseModel):
+    state: Literal['new', 'investigating', 'resolved'] = 'new'
+    controlled_test: bool = False
+    version: int = 0
+
+
 class IncidentSummary(BaseModel):
     incident_id: str; title: str; attacker_ip: str; target_ip: str | None; risk: int
     level: Literal["Low", "Medium", "High"]; stages: list[Literal["recon", "credential", "access"]]
     devices: list[str]; event_count: int; first_time: int; last_time: int; status: Literal["open", "closed"]
+    workflow: IncidentWorkflow = IncidentWorkflow()
 
 class SearchResult(BaseModel):
     query_id: str | None = None

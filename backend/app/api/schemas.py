@@ -154,6 +154,7 @@ class IncidentDetail(IncidentSummary):
     stages_detail: list[Stage]; risk_breakdown: dict[str, int]; events: list[EventSummary] = []
     explanation: str = ""
     recommended_action: str = ""
+    activity: list[dict] = []
 
 
 class DemoState(BaseModel, extra="allow"):
