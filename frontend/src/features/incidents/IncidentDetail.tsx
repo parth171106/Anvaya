@@ -13,11 +13,13 @@ import { IncidentHeaderLine } from './IncidentList';
 import { AIExplanation } from '@/features/search/AIExplanation';
 import Investigation from './Investigation';
 import IncidentReport from './IncidentReport';
+import SSHResponse from './SSHResponse';
 
 const CHIPS_SHOWN = 2;
 
 function RiskBreakdown({ d }: { d: Detail }) {
   const b = d.risk_breakdown;
+  if (d.ssh_finding) return <p className="mt-2 text-body text-graphite">SSH rule priority: {d.level} ({d.risk}/100). {d.stages.includes('access') ? 'A successful login followed the failure threshold on an affected device; confirm whether it was authorized.' : 'Repeated distinct failed connections require review.'} This is not a breach probability.</p>;
   if (d.stages.length === 1 && d.stages[0] === 'credential') return <p className="mt-2 text-body text-graphite">Rule severity: Medium (40/100). This score is a review priority, not the probability of a breach.</p>;
   return (
     <p className="mt-2 text-body text-graphite">
@@ -95,6 +97,15 @@ export default function IncidentDetail() {
       <Link to={`/replay?incident=${encodeURIComponent(incidentId)}`} className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-control border border-rule bg-surface px-4 text-body font-medium text-seal hover:bg-paper-sunk"><Play className="size-4" aria-hidden /> Replay incident</Link>
       <Investigation key={incidentId} incident={d} />
       <IncidentReport key={`report-${incidentId}`} incidentId={incidentId} />
+      {d.ssh_finding && <SSHResponse key={`response-${incidentId}`} incident={d} />}
+      {d.ssh_finding && <section className="mt-4 min-w-0 rounded-panel border border-rule bg-surface p-5">
+        <h2 className="text-h3 font-semibold">SSH investigation</h2>
+        <p className="mt-2 text-body text-graphite">Check whether you recognize the source IP and user accounts. Confirm successful logins with the server owner before taking action. Shared networks and legitimate retries can resemble attacks. This view does not confirm any firewall action.</p>
+        <p className="mt-2 text-body">Related successful logins from the same IP on affected devices: {d.ssh_context?.length ?? 0} of {d.ssh_context_total ?? 0} shown. Window: 10 minutes before the first failure to 15 minutes after the last failure.</p>
+        <div className="mt-3 flex flex-wrap gap-2">{d.ssh_context?.map(e => <EvidenceChip key={e.event_id} e={e} onOpen={id => navigate(`/events/${id}`)} />)}</div>
+        {!d.ssh_context?.length && <p className="mt-2 text-label text-graphite">No matching successful login is stored in this window. This does not rule out missing logs or other access methods.</p>}
+        <Link className="mt-3 inline-block text-body font-medium text-seal underline" to="/alerts">Open alert inbox and Telegram settings</Link>
+      </section>}
       {d.explanation && <section className="mt-4 space-y-2 rounded-panel border border-rule bg-surface p-5">
         <h2 className="text-h3 font-semibold">Why this needs attention</h2>
         <p className="text-body">{d.explanation}</p>
