@@ -52,6 +52,7 @@ class IncidentWorkflow(BaseModel):
     state: Literal['new', 'investigating', 'resolved'] = 'new'
     controlled_test: bool = False
     version: int = 0
+    assessment: Literal['unreviewed', 'expected', 'suspicious'] = 'unreviewed'
 
 
 class IncidentSummary(BaseModel):

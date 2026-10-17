@@ -20,6 +20,8 @@ def install(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, e: RequestValidationError):
+        if _.url.path.startswith('/api/notifications/'):
+            return envelope(422, 'validation_error', 'Check the notification fields; token, private chat ID and consent are required.')
         return envelope(422, "validation_error", "Request validation failed", {"errors": e.errors()})
 
     @app.exception_handler(HTTPException)

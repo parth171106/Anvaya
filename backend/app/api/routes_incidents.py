@@ -9,6 +9,7 @@ from app.api.deps import C
 from app.api.errors import ApiError, not_found
 from app.api.schemas import IncidentDetail, Items
 from app.delivery.incident_report import render_pdf, snapshot
+from app.delivery.response_plan import prepare
 
 router = APIRouter(prefix="/api")
 
@@ -33,10 +34,28 @@ class InvestigationUpdate(BaseModel, extra='forbid'):
     controlled_test: StrictBool
     version: int = Field(ge=0, strict=True)
     note: str = Field(default='', max_length=5000)
+    assessment: Literal['unreviewed', 'expected', 'suspicious'] | None = None
 
 
 class ReportOptions(BaseModel, extra='forbid'):
     verify: StrictBool = True
+
+
+class BlockPlanOptions(BaseModel, extra='forbid'):
+    device: str = Field(min_length=1, max_length=255)
+    minutes: Literal[5, 15]
+
+
+@router.post('/incidents/{incident_id}/block-plan')
+async def block_plan(incident_id: str, body: BlockPlanOptions, request: Request, c: C):
+    principal = getattr(request.state, 'principal', None)
+    actor = principal['username'] if principal else 'local analyst'
+    try:
+        return prepare(c, incident_id, body.device, body.minutes, actor)
+    except KeyError:
+        raise not_found('Incident')
+    except ValueError as error:
+        raise ApiError(400, 'bad_request', str(error))
 
 
 @router.post('/incidents/{incident_id}/report')
@@ -59,7 +78,7 @@ async def update_investigation(incident_id: str, body: InvestigationUpdate, requ
     actor = principal['username'] if principal else 'local analyst'
     try:
         c.repo.update_incident_workflow(incident_id, body.state, body.controlled_test,
-                                       body.version, body.note.strip(), actor)
+                                       body.version, body.note.strip(), actor, body.assessment)
     except KeyError:
         raise not_found('Incident')
     except ValueError as exc:

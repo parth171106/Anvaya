@@ -10,6 +10,7 @@ from app.core.config import Config
 from app.core.models import NormalizedEvent, RawMeta, RawRecord
 from app.core.queue import InProcQueue
 from app.delivery.siem import FileSink, SiemForwarder
+from app.delivery.alerts import AlertService
 from app.ingest.vetting import vet
 from app.intel.correlate import Correlator
 from app.intel.silence import SilenceMonitor
@@ -70,7 +71,8 @@ class Container:
         self.witnesses = [InProcessWitness(n, d / "witness" / f"{n}.db", self.keys[n]) for n in WITNESSES]
         self.ledger = Ledger(self.repo, self.store, self.keys, self.witnesses, self.clock, self.cfg, emit)
         self.registry = PackRegistry(extra_dir=d / "packs")
-        self.correlator = Correlator(self.repo, emit)
+        self.alerts = AlertService(self)
+        self.correlator = Correlator(self.repo, emit, self.alerts.record)
         self.silence = SilenceMonitor(self.repo, emit, self.cfg.silence_min_seconds)
         self.siem = SiemForwarder(FileSink(d / "outbox" / "siem-forward.ndjson"), self.clock)
         self.event_hooks = [self.correlator.on_batch, self.silence.on_events, self.siem.on_batch]

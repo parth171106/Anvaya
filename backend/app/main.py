@@ -12,7 +12,7 @@ from fastapi.responses import Response
 from app.api import (errors, routes_delivery, routes_demo, routes_events, routes_health, routes_incidents, routes_ledger,
                      routes_parsers, routes_search, routes_sources, routes_stream)
 from app.api.errors import not_found
-from app.api import routes_accounts, routes_legal, routes_recovery
+from app.api import routes_accounts, routes_legal, routes_recovery, routes_alerts
 from app.api.deps import C
 from app.auth import Auth, AuthMiddleware, router as auth_router
 from app.core import config
@@ -68,6 +68,7 @@ def background_tasks(c: Container) -> list[asyncio.Task]:
         "ledger_sealer": every(0.25, lambda: c.ledger.tick()),
         "silence_monitor": every(1.0, lambda: c.silence.tick()),
         "stats": every(1.0, lambda: c.publish("stats.tick", c.stats())),
+        "alert_delivery": lambda: c.alerts.run(),
     }
     if c.cfg.demo_mode:
         from app.demo.netprobe import probe_loop
@@ -121,6 +122,7 @@ def create_app(cfg: config.Config | None = None, container_factory=Container) ->
     app.include_router(routes_accounts.router)
     app.include_router(routes_recovery.router)
     app.include_router(routes_legal.router)
+    app.include_router(routes_alerts.router)
     app.include_router(ingest_http.router)
     for r in (routes_health, routes_events, routes_ledger, routes_sources, routes_parsers, routes_incidents,
               routes_search, routes_delivery, routes_demo, routes_stream):

@@ -4,6 +4,7 @@ import json
 from collections import Counter
 
 WINDOW_MS = 10 * 60 * 1000
+SSH_SUCCESS_MS = 15 * 60 * 1000
 STAGES = ("recon", "credential", "access")
 LABELS = {"recon": "Reconnaissance", "credential": "Credential attack", "access": "Access"}
 RFC1918 = [ipaddress.ip_network(n) for n in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")]
@@ -45,7 +46,7 @@ def by_first_seen(events: list[dict]) -> list[str]:
     return list(seen)
 
 
-def evaluate(attacker: str, win: list[dict]) -> dict | None:
+def evaluate(attacker: str, win: list[dict], related: list[dict] | None = None) -> dict | None:
     st = stage_events(win)
     if len(st) < 2 or is_internal(attacker):
         failures = [e for e in win if e.get('format') == 'openssh-journal' and e['status'] == 'Failure']
@@ -58,13 +59,26 @@ def evaluate(attacker: str, win: list[dict]) -> dict | None:
         failures = [e for e in failures if counts[e['device']] >= 10]
         if not failures:
             return None
+        successes = []
+        for device in by_first_seen(failures):
+            device_failures = sorted((e for e in failures if e['device'] == device), key=lambda e: e['time'])
+            threshold_at, last_at = device_failures[9]['time'], device_failures[-1]['time']
+            successes.extend(e for e in (related if related is not None else win)
+                             if e.get('format') == 'openssh-journal' and e['status'] == 'Success'
+                             and e['device'] == device and e['src_ip'] == attacker
+                             and threshold_at < e['time'] <= last_at + SSH_SUCCESS_MS)
+        successes.sort(key=lambda e: e['time'])
         devices = by_first_seen(failures)
+        stages = {'credential': failures}
+        if successes:
+            stages['access'] = successes
         return {'attacker_ip': attacker, 'target_ip': None, 'window_start': win[0]['time'],
-                'title': f"Repeated SSH login failures: {attacker}", 'stages': ['credential'],
-                'devices': devices, 'risk': 40, 'level': 'Medium',
-                'risk_breakdown': {'stages': 40, 'devices': 0, 'ordered': 0},
-                'first_time': failures[0]['time'], 'last_time': failures[-1]['time'],
-                '_stage_events': {'credential': failures}}
+                'title': f"SSH login after repeated failures: {attacker}" if successes else f"Repeated SSH login failures: {attacker}",
+                'stages': list(stages), 'devices': devices, 'risk': 75 if successes else 40,
+                'level': 'High' if successes else 'Medium',
+                'risk_breakdown': {'stages': 75 if successes else 40, 'devices': 0, 'ordered': 0},
+                'first_time': failures[0]['time'], 'last_time': max(e['time'] for e in failures + successes),
+                '_stage_events': stages}
     contributing = [e for es in st.values() for e in es]
     devices = by_first_seen(contributing)
     firsts = [st[s][0]["time"] for s in STAGES if s in st]
@@ -96,33 +110,50 @@ def headline(stage: str, es: list[dict], attacker: str, target: str | None) -> s
         protocol = 'SSH' if formats == {'openssh-journal'} else 'VPN' if formats == {'fortigate-kv'} else 'authentication'
         return f"{len(es)} failed {protocol} logins from {attacker} ({', '.join(users)})"
     e = es[0]
+    if all(e.get('format') == 'openssh-journal' for e in es):
+        return f"{len(es)} successful SSH login(s) from {attacker} after repeated failures; review whether authorized"
     return f"Firewall allowed {attacker} → {e['dst_ip']}:{e['dst_port']}"
 
 
 class Correlator:
-    def __init__(self, repo, publish):
-        self.repo, self.publish = repo, publish
+    def __init__(self, repo, publish, notify=lambda summary, stages: None):
+        self.repo, self.publish, self.notify = repo, publish, notify
 
     def on_batch(self, events) -> None:
         attackers = {ip for ev in events if (ip := _src(ev)) and _stage_relevant(ev.ocsf)}
         for ip in sorted(attackers):
-            for win in windows(self.repo.events_from_src(ip)):
-                inc = evaluate(ip, win)
+            related = self.repo.events_from_src(ip)
+            for win in windows(related):
+                inc = evaluate(ip, win, related)
                 if inc:
                     self._upsert(inc)
 
     def _upsert(self, inc: dict) -> None:
         st = inc.pop("_stage_events")
         before = self.repo.incident_by_key(inc["attacker_ip"], inc["window_start"])
+        # Late/out-of-order SSH logs can shift an anchored window. Reuse a finding
+        # with the same failed evidence so its review state and alert IDs survive.
+        credential_ids = [e['event_id'] for e in st.get('credential', []) if e.get('format') == 'openssh-journal']
+        if before is None and credential_ids:
+            placeholders = ','.join('?' for _ in credential_ids)
+            before = self.repo.con.execute(
+                f'SELECT i.* FROM incidents i JOIN incident_events e USING(incident_id) '
+                f'WHERE i.attacker_ip=? AND e.event_id IN ({placeholders}) '
+                'GROUP BY i.incident_id ORDER BY COUNT(*) DESC, i.first_time LIMIT 1',
+                [inc['attacker_ip'], *credential_ids]).fetchone()
+            if before:
+                inc['window_start'] = before['window_start']
         prior_count = self.repo.incident_summary(before["incident_id"])["event_count"] if before else 0
         row = {**inc, **{k: json.dumps(inc[k], separators=(",", ":")) for k in ("stages", "devices", "risk_breakdown")}}
         with self.repo.tx():
             iid = self.repo.upsert_incident(row, [(e["event_id"], s) for s, es in st.items() for e in es])
         summary = self.summary(iid)
+        self.notify(summary, st)
         if before is None:
             self.publish("incident.opened", summary)
         elif (json.loads(before["stages"]) != inc["stages"] or before["risk"] != inc["risk"]
-              or (inc['stages'] == ['credential'] and prior_count != summary['event_count'])):
+              or (all(e.get('format') == 'openssh-journal' for es in st.values() for e in es)
+                  and prior_count != summary['event_count'])):
             self.publish("incident.updated", summary)
 
     def summary(self, iid: str) -> dict:
@@ -142,13 +173,28 @@ class Correlator:
                            "devices": by_first_seen(es), "event_count": len(es),
                            "headline": headline(s, es, d["attacker_ip"], d["target_ip"]),
                            "event_ids": [r["event_id"] for r in es]})
-        ssh_only = d['stages'] == ['credential'] and all(r.get('format') == 'openssh-journal' for r in rows)
+        ssh_only = bool(rows) and all(r.get('format') == 'openssh-journal' for r in rows)
         explanation = (
             'At least 10 distinct SSH connections failed authentication from the same source IP to the same device in a 10-minute correlation window. '
             'This may indicate password guessing, a misconfigured client or an authorized test. It does not prove a successful intrusion.'
             if ssh_only else
             'Multiple attack stages were linked by source IP and time. Review the original events before deciding whether this is an intrusion.')
+        if ssh_only and 'access' in d['stages']:
+            explanation += (' A successful SSH login from the same source IP to an affected device was recorded after the threshold '
+                            'and within 15 minutes of the last failed connection. Shared IPs and legitimate retries can explain this; '
+                            'confirm the username, authentication method, and whether the login was authorized.')
+        context = []
+        if ssh_only:
+            failures = [e for e in rows if e['status'] == 'Failure']
+            if failures:
+                context = [e for e in self.repo.events_from_src(d['attacker_ip'])
+                           if e.get('format') == 'openssh-journal' and e['status'] == 'Success'
+                           and e['device'] in d['devices']
+                           and min(r['time'] for r in failures) - WINDOW_MS <= e['time']
+                           <= max(r['time'] for r in failures) + SSH_SUCCESS_MS]
         return {**self.summary(iid), "stages_detail": stages, "risk_breakdown": d["risk_breakdown"],
+                'ssh_context': self.repo.summaries([e['event_id'] for e in context[:50]]),
+                'ssh_context_total': len(context), 'ssh_finding': ssh_only,
                 'explanation': explanation,
                 'recommended_action': 'Check whether you recognize the source IP and usernames. Open the linked events to inspect raw logs and verify integrity. Review successful logins around the same time; do not block an IP solely on this finding.'}
 
@@ -159,7 +205,7 @@ def _stage_relevant(o: dict) -> bool:
     if cls == 2004:
         return "SCAN" in ((o.get("finding_info") or {}).get("title") or "")
     if cls == 3002:
-        return o.get("status") == "Failure"
+        return o.get("status") in {"Failure", "Success"}
     if cls == 4001:
         return o.get("action") == "Denied" or (o.get("action") == "Allowed" and o.get("activity_name") == "Open"
                                                 and is_internal((o.get("dst_endpoint") or {}).get("ip")))

@@ -155,6 +155,9 @@ class IncidentDetail(IncidentSummary):
     explanation: str = ""
     recommended_action: str = ""
     activity: list[dict] = []
+    ssh_finding: bool = False
+    ssh_context: list[EventSummary] = []
+    ssh_context_total: int = 0
 
 
 class DemoState(BaseModel, extra="allow"):
