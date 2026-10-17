@@ -2,9 +2,11 @@
 
 # ANVAYA
 
-### Security log analysis with verifiable raw evidence
+### Follow the logs. Find the pattern. Verify the evidence.
 
-Normalize firewall, IDS, VPN, and authentication logs into OCSF. Investigate related events. Check whether stored evidence has changed.
+**A self-hosted security log analysis and incident investigation platform for cybersecurity labs, students, and small deployments.**
+
+Bring firewall, IDS, VPN, Windows, and Linux SSH logs into one OCSF event schema. Investigate linked activity, replay incidents, receive Telegram SSH alerts, and trace findings back to verifiable raw evidence.
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](backend/pyproject.toml)
 [![React](https://img.shields.io/badge/React-TypeScript-149ECA?logo=react&logoColor=white)](frontend/package.json)
@@ -13,9 +15,13 @@ Normalize firewall, IDS, VPN, and authentication logs into OCSF. Investigate rel
 
 **[Try the hosted app](https://15.135.87.178.sslip.io/join) · [Watch the earlier demo](https://youtu.be/E_oxEl3_dA8) · [Quick start](#quick-start) · [Documentation](#documentation)**
 
-If ANVAYA is useful to you, **star this repository** to help others discover it.
+**Exploring security monitoring, SOC workflows, or digital forensics? Start with the synthetic demo—no security appliance or cloud AI key needed.**
+
+If this is a project you'd like to use or follow, **[give ANVAYA a star](https://github.com/parth171106/Anvaya)**. Found a useful workflow? Share the repository with your lab or cybersecurity club.
 
 </div>
+
+**Explore:** [Why ANVAYA?](#why-anvaya) · [Who is it for?](#who-is-it-for) · [Features](#features) · [Quick start](#quick-start) · [Real SSH workflow](#from-ssh-logs-to-a-reviewable-response) · [How it works](#how-it-works) · [Contribute](#help-improve-anvaya)
 
 > **About the video:** The linked recording shows an older version of ANVAYA. It demonstrates the core workflow, but some newer features and interface changes are not shown. It is not a complete tour of the current hosted app.
 
@@ -28,9 +34,22 @@ ANVAYA connects those steps in one application:
 - **Preserve the original:** save raw log bytes before parsing, including records from unrecognized formats.
 - **Make logs comparable:** map supported formats into the Open Cybersecurity Schema Framework (OCSF).
 - **Investigate related activity:** correlate events across devices and inspect a timeline with linked evidence.
+- **Get notified:** receive an optional Telegram message when the SSH failure threshold is reached or a successful login follows it.
 - **Check evidence integrity:** verify hashes, Merkle inclusion, signed batches, and local witness agreement.
+- **Act with a review trail:** classify findings, save notes, export a PDF report, and prepare a temporary SSH block for separate approval on the affected server.
 
 Built as a college cybersecurity project around **Smart India Hackathon problem statement SIH26156: Universal Log Pre-processing Framework**. It is intended for learning, demonstrations, and small deployments; it is not a production SIEM replacement or a certification of security compliance.
+
+## Who is it for?
+
+| You are… | Try ANVAYA to… |
+| --- | --- |
+| A cybersecurity student or instructor | Demonstrate the complete path from raw logs to investigation, integrity verification, and reviewed response. |
+| A home-lab builder or Linux server owner | Collect SSH authentication activity and receive notifications about repeated failed connections. |
+| Learning SOC analysis or digital forensics | Inspect evidence, replay an incident timeline, distinguish expected activity from suspicious behavior, and write up a finding. |
+| Building a parser or log-processing tool | Work with OCSF mappings, unknown-format quarantine, byte lineage, and repeatable synthetic fixtures. |
+
+You can explore the demo without real attacks, extra hardware, or a paid AI service. To monitor a real machine, configure its collector; an empty workspace does not generate findings by itself.
 
 ## Features
 
@@ -41,10 +60,15 @@ Built as a college cybersecurity project around **Smart India Hackathon problem 
 | **Raw-to-event traceability** | Follow normalized fields back to original bytes using lineage and round-trip checks. |
 | **Tamper-evident storage** | Check SHA-256 record hashes, Ed25519-signed Merkle batches, and two local witness stores. |
 | **Incident correlation** | Review related reconnaissance, credential attacks, and access events across devices. |
+| **Attack Replay** | Step through a stored incident's linked events to explain how the activity unfolded. Replay visualizes evidence; it does not execute an attack. |
+| **SSH alert inbox** | Review repeated SSH failures and subsequent successful logins, classify findings, and optionally receive [private Telegram alerts](docs/SSH-ALERTS.md). No automatic blocking. |
+| **Reviewed SSH response** | Prepare a [5- or 15-minute block plan](docs/SSH-RESPONSE.md) for new SSH connections from one public IP. A local server helper requires explicit approval and checks protected addresses. |
+| **Investigation notes and PDF reports** | Save status, assessment, and notes; export an incident report with linked evidence and optional raw-record verification. |
 | **Natural-language search** | Use supported query templates, an optional local model, or the optional Gemini assistant. |
 | **AI-assisted investigation** | Ask follow-up questions and request evidence-referenced explanations with explicit consent. |
 | **Unknown-format quarantine** | Preserve unrecognized logs, test parser drafts, and approve a parser before replaying records. |
 | **Private workspaces** | Use separate user accounts, account-scoped logs, collector keys, and recovery codes. |
+| **Dark mode and responsive layouts** | Review events and investigations on different screen sizes with light, dark, or system appearance. |
 | **Data export** | Export normalized events to Parquet for analysis and data-lake workflows. |
 
 ### Supported sources
@@ -86,10 +110,11 @@ Open **[http://localhost:8080/overview](http://localhost:8080/overview)**. Press
 ### A useful first walkthrough
 
 1. **Overview / Live feed:** watch generated events arrive from different sources.
-2. **Incidents:** open the correlated incident and inspect its linked events.
+2. **Incidents / Attack Replay:** open the correlated incident, inspect its linked events, and replay the timeline.
 3. **Event details:** compare normalized fields with raw evidence and lineage.
 4. **Integrity:** run verification; then use the demo tamper control and verify again to see the changed evidence detected.
 5. **Sources & parsers:** inject the unknown demo source and inspect quarantine and parser-test results.
+6. **Investigation / PDF report:** label the finding as a controlled test, save a review note, and export a report.
 
 Demo presenter shortcuts:
 
@@ -105,6 +130,30 @@ Demo presenter shortcuts:
 | `0`, then `0` | Reset demo data |
 
 These controls belong to **demo mode**. Synthetic traffic is generated locally; it does not attack external systems.
+
+## From SSH logs to a reviewable response
+
+Here is a practical workflow beyond displaying logs:
+
+```text
+Linux SSH journal
+    → Collector uploads authentication events
+    → ANVAYA detects repeated failed connections
+    → Private alert inbox + optional Telegram notification
+    → Analyst reviews evidence and nearby successful logins
+    → Expected activity / Suspicious + investigation notes
+    → Optional block plan → explicit approval on the affected server
+```
+
+The SSH rule flags **10 distinct failed connections from one IP to one device in a 10-minute correlation window**. A successful login after that threshold and within 15 minutes of the last failure can escalate the finding. Windows are anchored, not continuously sliding; this rule does not detect every attack.
+
+**What has been exercised:** real EC2 SSH journal collection, an authorized failed-login test reaching the inbox and Telegram, and isolated firewall tests for blocking new connections, preserving an established connection, leaving another port reachable, expiry, and removal. The isolated expiry test uses a shortened timeout; these checks are not a general security audit or a production reliability guarantee.
+
+**Response stays under your control.** Downloading a plan does not block an IP. The Linux helper requires local approval, checks the target hostname and protected/connected SSH addresses, and uses a kernel timeout. It blocks new SSH connections only; it does not evict an attacker already logged in. The console does not claim a downloaded plan was applied.
+
+Historical imports and demo/controlled findings do not send automatic Telegram alerts. Do not turn your own management-IP test into a block target.
+
+**Set it up:** [Linux SSH collection](docs/LINUX-SSH.md) → [Telegram alerts](docs/SSH-ALERTS.md) → [Reviewed SSH response](docs/SSH-RESPONSE.md).
 
 ## Use real logs or deploy it
 
@@ -128,6 +177,12 @@ flowchart LR
     G --> H[Draft, test and approve parser]
     H --> E
     F --> I[Search and incident correlation]
+    I --> K[Investigation and Attack Replay]
+    I --> L[SSH alert inbox]
+    L --> M[Optional Telegram notification]
+    K --> N[PDF incident report]
+    K --> O[Reviewed SSH block plan]
+    O --> P[Separate approval on Linux host]
     F --> J[Parquet export]
 ```
 
@@ -163,6 +218,9 @@ Keep API keys in the documented Git-ignored secret files, not in source code or 
 | Raw storage, parsing, hashing, Merkle proofs, signatures, and round-trip tests | Executed by the application against stored data. |
 | Local demo traffic | Deterministic synthetic logs, not evidence of a real intrusion. |
 | Windows / Linux collectors | Read real permitted log sources; collection must be configured separately. |
+| SSH alerts and Telegram | Rule-based detection and opt-in notification delivery, not proof that an intrusion occurred. |
+| Temporary SSH response | Real nftables rules applied only through the local helper after approval; no autonomous blocking or remote-execution permission for collectors. |
+| Attack Replay | A visualization of stored incident evidence, not a live attack simulator. |
 | Demo parser drafting | May use a cached model draft or a hand-authored draft; validation, approval, and replay run against records. |
 | Witnesses | Two local stores with separate keys, not independent external organizations. |
 | SIEM delivery | A file sink, not a completed integration with an external SIEM. Parquet export is implemented. |
@@ -194,6 +252,11 @@ Useful test entry points: [raw vault](backend/tests/test_vault.py), [round-trip 
 | [Architecture](docs/ARCHITECTURE.md) | Pipeline, storage, normalization, and integrity design |
 | [Local live-log pilot](docs/LIVE_PILOT.md) | Real Windows sign-in collection |
 | [Linux SSH](docs/LINUX-SSH.md) | SSH journal ingestion |
+| [SSH alerts and Telegram](docs/SSH-ALERTS.md) | Detection rules, private bot setup, delivery behavior, and data sharing |
+| [Temporary SSH response](docs/SSH-RESPONSE.md) | Plan preparation, protected IPs, local approval, expiry, and early removal |
+| [Attack Replay](docs/ATTACK-REPLAY.md) | Exploring a stored incident's sequence and evidence |
+| [Incident investigation](docs/INCIDENT-INVESTIGATION.md) | Status, notes, and review history |
+| [Incident reports](docs/INCIDENT-REPORTS.md) | PDF exports and integrity-verification options |
 | [Deployment](docs/DEPLOYMENT.md) | A persistent Linux VM with HTTPS and accounts |
 | [AI assistant](docs/AI-ASSISTANT.md) | Model configuration, consent, and limitations |
 | [Password recovery](docs/PASSWORD-RECOVERY.md) | Password visibility and recovery codes |
@@ -208,12 +271,14 @@ Repository layout: `backend/` application and tests · `frontend/` console · `c
 - **Contribute a parser or test fixture** for a source you know. Use synthetic or anonymized samples; remove credentials and private identifiers.
 - **Improve documentation** when a setup step or explanation is unclear.
 
+Good starting contributions include a sanitized parser fixture, a reproducible UI bug, a clearer setup example, or a regression test for a missed detection edge case. Explain the expected behavior and include enough information for someone else to reproduce it.
+
 Discuss substantial changes in an issue before opening a pull request. Include relevant tests and explain what changed. Please do not post secrets or private log payloads in public issues.
 
 Project contact: [anvaya-sih@proton.me](mailto:anvaya-sih@proton.me).
 
 ## Roadmap
 
-Independent witness services · external SIEM integrations · more parser packs (including Palo Alto, pfSense, and CEF/LEEF) · finer-grained roles · signed parser packs · larger-scale storage and ingestion · an offline installation bundle.
+Collector heartbeat and recovery notifications · independent witness services · external SIEM integrations · more parser packs (including Palo Alto, pfSense, and CEF/LEEF) · finer-grained roles · signed parser packs · larger-scale storage and ingestion · an offline installation bundle.
 
 These are future directions, not claims about features already implemented.
