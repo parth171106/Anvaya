@@ -1,4 +1,6 @@
 export const qk = {
+  alerts: ['alerts'] as const,
+  telegram: ['notifications', 'telegram'] as const,
   health: ['health'] as const,
   stats: ['stats'] as const,
   events: (params: object = {}) => ['events', params] as const,

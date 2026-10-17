@@ -1,5 +1,6 @@
 // Typed client for every endpoint in TRD.md §16. The frontend talks to the backend only through this module.
 import type {
+  SecurityAlert, TelegramStatus,
   DeliveryStatus, DemoState, DraftTestResult, EventDetail, EventSummary, Health, IncidentDetail, IncidentSummary, IncidentWorkflow,
   LedgerBatch, LedgerVerifyResult, ParquetExport, ParserDraft, ParserInfo, QuarantineGroup, RecordVerifyResult,
   RetentionReport, SearchResult, SourceInfo, Stats, TamperInfo, WitnessInfo,
@@ -63,6 +64,14 @@ const get = <T>(path: string, params?: Record<string, unknown>) => request<T>('G
 const post = <T>(path: string, body: unknown = {}) => request<T>('POST', path, body);
 
 export const api = {
+  alerts: {
+    list: (before?: number) => get<{ items: SecurityAlert[]; unread: number; next_before: number | null }>('/alerts', { before }),
+    acknowledge: (id: number) => post<{ ok: boolean }>(`/alerts/${id}/acknowledge`),
+    telegram: () => get<TelegramStatus>('/notifications/telegram'),
+    configure: (bot_token: string, chat_id: string, consent: boolean) => post<TelegramStatus>('/notifications/telegram', { bot_token, chat_id, consent }),
+    disable: () => post<TelegramStatus>('/notifications/telegram/disable'),
+    test: () => post<{ ok: boolean }>('/notifications/telegram/test'),
+  },
   auth: {
     session: () => get<Session>('/auth/session'),
     login: (username: string, password: string) => post<{ ok: boolean }>('/auth/login', { username, password }),
@@ -114,6 +123,7 @@ export const api = {
       post<{ draft_id: string; status: string }>(`/parsers/drafts/${draftId}/reject`, { reason }),
   },
   incidents: {
+    blockPlan: (id: string, device: string, minutes: 5 | 15) => post<{ version: number; plan_id: string; device: string; source_ip: string; minutes: number; created_at: number; expires_at: number; action: string; incident_id: string }>(`/incidents/${id}/block-plan`, { device, minutes }),
     list: () => get<{ items: IncidentSummary[] }>('/incidents'),
     get: (id: string) => get<IncidentDetail>(`/incidents/${id}`),
     investigate: (id: string, body: IncidentWorkflow & { note: string }) => post<IncidentDetail>(`/incidents/${id}/investigation`, body),

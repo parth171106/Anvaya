@@ -24,6 +24,7 @@ const ANIMATION_PAUSE_MS = 400;
 
 type Handler = (data: never) => void;
 const handlers: Record<string, Handler> = {
+  'alert.created': () => { void queryClient.invalidateQueries({ queryKey: qk.alerts }); },
   'event.normalized': (e: EventSummary) => useFeedStore.getState().enqueue(entryOf(e, 'event')),
   'event.quarantined': (q: EventQuarantined) => {
     useFeedStore.getState().enqueue(entryOf(q, 'quarantine'));
@@ -80,7 +81,7 @@ const handlers: Record<string, Handler> = {
     useDemoStore.getState().hydrate({ ...s, demo_mode: true });
   },
   resync: () => {
-    for (const key of [qk.stats, qk.events(), qk.incidents, qk.sources]) queryClient.invalidateQueries({ queryKey: key });
+    for (const key of [qk.stats, qk.events(), qk.incidents, qk.sources, qk.alerts]) queryClient.invalidateQueries({ queryKey: key });
   },
 };
 
