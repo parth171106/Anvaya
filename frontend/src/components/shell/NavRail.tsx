@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Activity, Menu, Gauge, Network, Play, Search, Send, ShieldCheck, Siren, UserRound, type LucideIcon } from 'lucide-react';
+import { Activity, Bell, Menu, Gauge, Network, Play, Search, Send, ShieldCheck, Siren, UserRound, type LucideIcon } from 'lucide-react';
 import { NavLink } from 'react-router';
 import { cn } from '@/lib/utils';
 import { useIncidentStore, useIntegrityStore, useReplayStore } from '@/state';
@@ -16,6 +16,7 @@ export function NavRail({ mobile = false, onNavigate }: { mobile?: boolean; onNa
     { to: '/overview', label: 'Overview', Icon: Gauge },
     { to: '/feed', label: 'Live feed', Icon: Activity },
     { to: '/incidents', label: 'Incidents', Icon: Siren, badge: openIncidents || null },
+    { to: '/alerts', label: 'Alert inbox', Icon: Bell },
     { to: '/replay', label: 'Attack Replay', Icon: Play },
     { to: '/search', label: 'Search', Icon: Search },
     { to: '/integrity', label: 'Integrity', Icon: ShieldCheck, badge: verdict && verdict !== 'verified' ? '✗' : null },

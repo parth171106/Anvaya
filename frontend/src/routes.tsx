@@ -9,6 +9,7 @@ const Overview = lazy(() => import('@/features/overview/Overview'));
 const Feed = lazy(() => import('@/features/feed/Feed'));
 const EventDetail = lazy(() => import('@/features/event/EventDetail'));
 const IncidentList = lazy(() => import('@/features/incidents/IncidentList'));
+const Alerts = lazy(() => import('@/features/incidents/Alerts'));
 const IncidentDetail = lazy(() => import('@/features/incidents/IncidentDetail'));
 const AttackReplay = lazy(() => import('@/features/replay/AttackReplay'));
 const Search = lazy(() => import('@/features/search/Search'));
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: '/feed', element: page(Feed, skeletons.rows) },
       { path: '/events/:eventId', element: page(EventDetail, skeletons.panes) },
       { path: '/incidents', element: page(IncidentList, skeletons.rows) },
+      { path: '/alerts', element: page(Alerts, skeletons.rows) },
       { path: '/incidents/:incidentId', element: page(IncidentDetail, skeletons.rows) },
       { path: '/replay', element: page(AttackReplay, skeletons.panes) },
       { path: '/search', element: page(Search, skeletons.rows) },
