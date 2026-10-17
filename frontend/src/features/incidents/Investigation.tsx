@@ -6,6 +6,7 @@ import { qk } from '@/lib/queryKeys';
 import type { IncidentDetail, IncidentWorkflow } from '@/lib/types';
 
 export const WORKFLOW_LABELS = { new: 'New', investigating: 'Investigating', resolved: 'Resolved' };
+export const ASSESSMENT_LABELS = { unreviewed: 'Unreviewed', expected: 'Expected activity', suspicious: 'Suspicious' };
 
 export default function Investigation({ incident }: { incident: IncidentDetail }) {
   const client = useQueryClient();
@@ -32,11 +33,13 @@ export default function Investigation({ incident }: { incident: IncidentDetail }
       setMessage('Latest status loaded. Your unsaved note has been kept.');
     },
   });
-  const changed = note.trim() || draft.state !== incident.workflow?.state || draft.controlled_test !== incident.workflow?.controlled_test;
+  const changed = note.trim() || draft.state !== incident.workflow?.state || draft.controlled_test !== incident.workflow?.controlled_test
+    || (draft.assessment ?? 'unreviewed') !== (incident.workflow?.assessment ?? 'unreviewed');
   const pending = save.isPending || reload.isPending;
   return <section className="mt-5 min-w-0 rounded-panel border border-rule bg-surface p-4 sm:p-5" aria-labelledby="investigation-heading">
     <h2 id="investigation-heading" className="text-h3 font-semibold">Investigation</h2>
     <p className="mt-1 text-body text-graphite">Track your review here. Notes and labels do not change the original logs or their integrity proofs.</p>
+    <p className="mt-1 text-body text-graphite">Expected activity and controlled tests suppress pending Telegram alerts for this incident. Messages already sent cannot be recalled.</p>
     <form className="mt-4 space-y-4" onSubmit={(event) => { event.preventDefault(); setMessage(''); save.mutate(); }}>
       <fieldset disabled={pending} className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-end gap-4">
@@ -44,6 +47,12 @@ export default function Investigation({ incident }: { incident: IncidentDetail }
             <select className="min-h-11 max-w-full rounded-chip border border-rule bg-surface px-3 text-body text-ink" value={draft.state}
               onChange={(event) => setDraft({ ...draft, state: event.target.value as IncidentWorkflow['state'] })}>
               {Object.entries(WORKFLOW_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label className="flex min-w-0 flex-col gap-1 text-label font-medium">Assessment
+            <select className="min-h-11 max-w-full rounded-chip border border-rule bg-surface px-3 text-body text-ink" value={draft.assessment ?? 'unreviewed'}
+              onChange={(event) => setDraft({ ...draft, assessment: event.target.value as IncidentWorkflow['assessment'] })}>
+              {Object.entries(ASSESSMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label className="flex min-h-11 items-center gap-2 text-body">
@@ -68,7 +77,7 @@ export default function Investigation({ incident }: { incident: IncidentDetail }
       {!incident.activity?.length && <p className="mt-2 text-body text-graphite">No investigation updates yet.</p>}
       <ol className="mt-3 max-h-96 space-y-3 overflow-y-auto" aria-label="Investigation activity">
         {incident.activity?.map((entry) => <li key={entry.id} className="min-w-0 rounded-chip bg-paper-sunk p-3">
-          <p className="break-words text-label text-graphite">{entry.actor} · {new Date(entry.at).toLocaleString()} · {WORKFLOW_LABELS[entry.state]}{entry.controlled_test ? ' · Controlled test' : ''}</p>
+          <p className="break-words text-label text-graphite">{entry.actor} · {new Date(entry.at).toLocaleString()} · {WORKFLOW_LABELS[entry.state]} · {ASSESSMENT_LABELS[entry.assessment ?? 'unreviewed']}{entry.controlled_test ? ' · Controlled test' : ''}</p>
           {entry.note && <p className="mt-1 whitespace-pre-wrap break-words text-body [overflow-wrap:anywhere]">{entry.note}</p>}
         </li>)}
       </ol>
