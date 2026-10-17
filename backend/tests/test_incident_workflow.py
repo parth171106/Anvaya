@@ -24,7 +24,7 @@ async def test_workflow_persists_recorrelation_and_preserves_evidence(api):
     raw_before = [(r.raw_id, api.c.store.read(r.raw_id)) for r in api.c.repo.raw_records()]
     first = await api.post(f'/api/incidents/{iid}/investigation', json=update())
     assert first.status_code == 200, first.text
-    assert first.json()['workflow'] == dict(state='investigating', controlled_test=True, version=1)
+    assert first.json()['workflow'] == dict(state='investigating', controlled_test=True, version=1, assessment='unreviewed')
     assert first.json()['activity'][0]['note'] == 'Reviewed linked evidence.'
     closed = await api.post(f'/api/incidents/{iid}/investigation', json=update(1, 'resolved', 'Authorized test.'))
     assert closed.json()['status'] == 'closed'
